@@ -20,9 +20,12 @@
   },
   "homepage": "https://github.com/NatLibFi/marc-record-validate-cli#readme",
   "dependencies": {
+    "axios": "^0.16.2",
     "lodash": "^4.17.4",
     "marc-record-js": "https://github.com/petuomin/marc-record-js",
-    "marc-record-validate": "^1.0.2"
+    "marc-record-serializers": "https://github.com/petuomin/marc-record-serializers",
+    "marc-record-validate": "^1.0.2",
+    "yargs": "^8.0.2"
   },
   "devDependencies": {
     "build-cli": "^0.3.5",
