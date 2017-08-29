@@ -1,0 +1,34 @@
+{
+  "name": "marc-record-validate-cli",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "lint": "./node_modules/.bin/eslint",
+    "lint:all": "npm run lint index.js && npm run lint ./lib/*.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NatLibFi/marc-record-validate-cli.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NatLibFi/marc-record-validate-cli/issues"
+  },
+  "homepage": "https://github.com/NatLibFi/marc-record-validate-cli#readme",
+  "dependencies": {
+    "lodash": "^4.17.4",
+    "marc-record-js": "https://github.com/petuomin/marc-record-js",
+    "marc-record-validate": "^1.0.2"
+  },
+  "devDependencies": {
+    "build-cli": "^0.3.5",
+    "chai": "^4.1.1",
+    "eslint": "^4.5.0",
+    "istanbul": "^0.4.5",
+    "mocha": "^3.5.0"
+  }
+}
