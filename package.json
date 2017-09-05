@@ -2,9 +2,11 @@
   "name": "marc-record-validate-cli",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "./src/cli.js",
   "scripts": {
-    "lint": "./node_modules/.bin/eslint",
+    "build": "./node_modules/.bin/babel src/ -d build/",
+    "build:watch": "./node_modules/.bin/babel --watch src/ -d build/",
+    "lint": "./node_modules/.bin/eslint src/*.js",
     "lint:all": "npm run lint index.js && npm run lint ./lib/*.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -20,17 +22,25 @@
   },
   "homepage": "https://github.com/NatLibFi/marc-record-validate-cli#readme",
   "dependencies": {
-    "axios": "^0.16.2",
+    "@natlibfi/melinda-api-client": "git+https://github.com/NatLibFi/melinda-api-client.git",
+    "babel-polyfill": "^6.26.0",
     "lodash": "^4.17.4",
-    "marc-record-js": "https://github.com/petuomin/marc-record-js",
-    "marc-record-serializers": "https://github.com/petuomin/marc-record-serializers",
+    "marc-record-js": "git+https://github.com/petuomin/marc-record-js.git",
+    "marc-record-serializers": "git+https://github.com/petuomin/marc-record-serializers.git",
     "marc-record-validate": "^1.0.2",
+    "@natlibfi/marc-record-validators-melinda": "git+https://github.com/NatLibFi/marc-record-validators-melinda.git",
     "yargs": "^8.0.2"
   },
   "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-plugin-syntax-async-functions": "^6.13.0",
+    "babel-plugin-transform-regenerator": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-flow": "^6.23.0",
     "build-cli": "^0.3.5",
     "chai": "^4.1.1",
     "eslint": "^4.5.0",
+    "eslint-plugin-async-await": "0.0.0",
     "istanbul": "^0.4.5",
     "mocha": "^3.5.0"
   }
