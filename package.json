@@ -8,7 +8,7 @@
     "build:watch": "./node_modules/.bin/babel --watch src/ -d build/",
     "lint": "./node_modules/.bin/eslint src/*.js test/*.js",
     "lint:all": "npm run lint index.js && npm run lint ./lib/*.js",
-    "test": "cross-env NODE_ENV=test mocha --require babel-register"
+    "test": "npm run build && cross-env NODE_ENV=test mocha --require babel-register"
   },
   "repository": {
     "type": "git",

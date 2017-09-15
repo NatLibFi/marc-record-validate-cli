@@ -3,14 +3,14 @@ import Record from 'marc-record-js';
 import * as yargs from 'yargs';
 import MelindaClient from '@natlibfi/melinda-api-client';
 
-if (!process.env.USER || !process.env.PASS) {
-  throw new Error('Environment variable(s) USER and/or PASS not set');
+if (!process.env.VALIDATE_USER || !process.env.VALIDATE_PASS) {
+  throw new Error('Environment variable(s) VALIDATE_USER and/or VALIDATE_PASS not set');
 }
 
 const client = new MelindaClient({
-  endpoint: 'http://melinda.kansalliskirjasto.fi/API/latest/',
-  user: '',
-  password: ''
+  endpoint: process.env.VALIDATE_API || 'http://melinda.kansalliskirjasto.fi/API/latest/',
+  user: process.env.VALIDATE_USER,
+  password: process.env.VALIDATE_PASS
 });
 
 import validateFactory from '@natlibfi/marc-record-validators-melinda';
@@ -58,11 +58,23 @@ export async function fix(id) {
     let results = await validate(record);
     // If the record has been mutated, revalidate it
     if (!Record.isEqual(originalRec, record)) {
-      //console.log('Revalidating after changes...');
+      console.log('Revalidating after changes...');
       results = await validate(record);
     }
     return record;
   } catch(e) {
-    return null;
+    return Promise.reject(e);
   }
+}
+
+export async function save(record) {
+  const response = await client.updateRecord(record);
+  console.log(response);
+  return response;
+}
+
+export async function validateAndFix(id) {
+  const record = await fix(id);
+  const response = await save(record);
+  return response;
 }
