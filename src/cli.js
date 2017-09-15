@@ -58,7 +58,7 @@ export async function fix(id) {
     let results = await validate(record);
     // If the record has been mutated, revalidate it
     if (!Record.isEqual(originalRec, record)) {
-      console.log('Revalidating after changes...');
+      //console.log('Revalidating after changes...');
       results = await validate(record);
     }
     return record;
