@@ -1,4 +1,9 @@
 {
   "presets": ["flow", "es2015"],
-  "plugins": ["syntax-async-functions","transform-regenerator"]
+  "plugins": ["syntax-async-functions","transform-regenerator"],
+  "env": {
+    "test": {
+      "plugins": ["istanbul"]
+    }
+  }
 }

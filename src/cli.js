@@ -1,5 +1,6 @@
 import 'babel-polyfill';
 import fs from 'fs';
+import Record from 'marc-record-js';
 import Serializers from 'marc-record-serializers';
 import * as yargs from 'yargs';
 import MelindaClient from '@natlibfi/melinda-api-client';
@@ -34,13 +35,28 @@ const argv = yargs
 
 
 /**
- * Removable dummy code for testing.
+ * Fetch and validate a record
+ * @param {string} - Record id
+ * @returns {Promise} - Resolves with the validated record.
  */
-async function test2() {
+export async function fix(id) {
   console.log('Fetching record...');
-  const record = await client.loadRecord('007320849');
-  console.log(record.toString());
-  console.log('Got it!');
+  let record = await client.loadRecord(id);
+  if (!record) {
+    return new Promise((_, reject) => {
+      reject('Not found');
+    });
+  }
+  const originalRec = Record.clone(record);
+  const results = await validate(record);
+  // If the record has been mutated, revalidate it
+  if (!Record.isEqual(originalRec, record)) {
+    console.log('Revalidating after changes...');
+    record = await validate(record);
+  } else {
+    console.log("Nothing to change...");
+  }
+  return record;
 }
 
-test2();
+Promise.all(['123', '124', '125'].map(fix)).then(res => console.log("Done!"));
