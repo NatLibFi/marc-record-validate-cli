@@ -1,12 +1,18 @@
-import chai, {expect} from 'chai';
+import chai, { expect } from 'chai';
 import Record from 'marc-record-js';
+import chaiAsPromised from 'chai-as-promised';
 import { fix } from '../build/cli.js';
 
+chai.use(chaiAsPromised);
+
 describe('fix', () => {
-  it('Should be able to fetch a record', done => {
-    fix('123')
-      .then(rec => {
-        expect(rec).to.be.an.instanceof(Object);
-      }).done();
+  it('Should be able to fetch a record', async () => {
+    const res = await fix('123');
+    expect(res).to.be.an.instanceof(Object);
+  });
+
+  it('Should throw because the record id is invalid', () => {
+    expect(fix('123ABC')).to.be.rejected;
+    expect(fix('MOIKKA!')).to.be.rejected;
   });
 });

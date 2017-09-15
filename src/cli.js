@@ -1,9 +1,12 @@
 import 'babel-polyfill';
-import fs from 'fs';
 import Record from 'marc-record-js';
-import Serializers from 'marc-record-serializers';
 import * as yargs from 'yargs';
 import MelindaClient from '@natlibfi/melinda-api-client';
+
+if (!process.env.USER || !process.env.PASS) {
+  throw new Error('Environment variable(s) USER and/or PASS not set');
+}
+
 const client = new MelindaClient({
   endpoint: 'http://melinda.kansalliskirjasto.fi/API/latest/',
   user: '',
@@ -33,6 +36,9 @@ const argv = yargs
   .describe('x', 'Read record ids from file, fix all')
   .argv;
 
+function isValid(id) {
+  return Number(id) > 0 && Number(id) < 100000000;
+}
 
 /**
  * Fetch and validate a record
@@ -40,23 +46,23 @@ const argv = yargs
  * @returns {Promise} - Resolves with the validated record.
  */
 export async function fix(id) {
-  console.log('Fetching record...');
-  let record = await client.loadRecord(id);
-  if (!record) {
-    return new Promise((_, reject) => {
-      reject('Not found');
-    });
+  if (!isValid(id)) {
+    throw new Error(`Invalid record id: ${id}`);
   }
-  const originalRec = Record.clone(record);
-  const results = await validate(record);
-  // If the record has been mutated, revalidate it
-  if (!Record.isEqual(originalRec, record)) {
-    console.log('Revalidating after changes...');
-    record = await validate(record);
-  } else {
-    console.log("Nothing to change...");
+  try {
+    let record = await client.loadRecord(id);
+    if (!record) {
+      return null;
+    }
+    const originalRec = Record.clone(record);
+    let results = await validate(record);
+    // If the record has been mutated, revalidate it
+    if (!Record.isEqual(originalRec, record)) {
+      console.log('Revalidating after changes...');
+      results = await validate(record);
+    }
+    return record;
+  } catch(e) {
+    return null;
   }
-  return record;
 }
-
-Promise.all(['123', '124', '125'].map(fix)).then(res => console.log("Done!"));

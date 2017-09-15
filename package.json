@@ -3,17 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "main": "./src/cli.js",
-  "nyc": {
-    "require": [
-      "babel-register"
-    ],
-    "sourceMap": false,
-    "instrument": false
-  },
   "scripts": {
-    "build": "./node_modules/.bin/babel src/ -d build/",
+    "build": "./node_modules/.bin/babel src/ test/ -d build/",
     "build:watch": "./node_modules/.bin/babel --watch src/ -d build/",
-    "lint": "./node_modules/.bin/eslint src/*.js",
+    "lint": "./node_modules/.bin/eslint src/*.js test/*.js",
     "lint:all": "npm run lint index.js && npm run lint ./lib/*.js",
     "test": "cross-env NODE_ENV=test mocha --require babel-register"
   },
@@ -26,6 +19,13 @@
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/NatLibFi/marc-record-validate-cli/issues"
+  },
+  "nyc": {
+    "require": [
+      "babel-register"
+    ],
+    "sourceMap": false,
+    "instrument": false
   },
   "homepage": "https://github.com/NatLibFi/marc-record-validate-cli#readme",
   "dependencies": {
@@ -47,6 +47,7 @@
     "babel-preset-flow": "^6.23.0",
     "build-cli": "^0.3.5",
     "chai": "^4.1.1",
+    "chai-as-promised": "^7.1.1",
     "cross-env": "^5.0.5",
     "eslint": "^4.5.0",
     "eslint-plugin-async-await": "0.0.0",
