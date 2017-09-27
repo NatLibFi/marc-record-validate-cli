@@ -50,7 +50,7 @@ function parseValidatorReport(report) {
  * @param {string} - Record object
  * @returns {Promise} - Resolves with the validated record.
  */
-export async function fix(record, validate) {
+export async function fixRecord(record) {
   const originalRec = Record.clone(record);
   let results = await validate(record);
   // If the record has been mutated, revalidate it
@@ -60,34 +60,28 @@ export async function fix(record, validate) {
   return results;
 }
 
+export async function getRecord(id) {
+  if (!isValid(id)) {
+    throw new Error(`Invalid record id: ${id}`);
+  }
+  try {
+    return await client.loadRecord(id);
+  }
+  catch (err) {
+    throw new Error(`No record with id ${id}`);
+  }
+}
+
 /**
  * Check args and call the needed functions here.
  * All console printing should be done here.
  */
 
 /* Fix a single record (--fix / -f flags) */
-
-export async function validateAndFix(id) {
-  console.log(`Fixing single record ${id}.`);
-  if (!isValid(id)) {
-    throw new Error(`Invalid record id: ${id}`);
-  }
-  let record = await client.loadRecord(id);
-  if (!record) {
-    console.log(`Record ${id} not found.`);
-    return;
-  }
-  console.log("Found record: ");
-  console.log(record.toString());
-  const originalRec = Record.clone(record);
-  const results = await fix(record, validate);
-  console.log(`Validated record:\n${record.toString()}`);
-  console.log(JSON.stringify(results));
-  const apiResponse = await client.updateRecord(record);
-  const message = apiResponse.messages[0].message;
-  console.log(message);
-}
-
 if (argv.fix) {
-  validateAndFix(argv.fix);
+  let record = "";
+  getRecord(argv.fix).then(data => {
+    record = data;
+  })
+  .catch(err => console.log(err));
 }
