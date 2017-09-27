@@ -4,11 +4,12 @@
   "description": "",
   "main": "./src/cli.js",
   "scripts": {
-    "build": "./node_modules/.bin/babel src/ test/ -d build/",
+    "build": "./node_modules/.bin/babel src/ -d build/",
     "build:watch": "./node_modules/.bin/babel --watch src/ -d build/",
-    "lint": "./node_modules/.bin/eslint src/*.js test/*.js",
+    "lint": "./node_modules/.bin/eslint src/*.js",
     "lint:all": "npm run lint index.js && npm run lint ./lib/*.js",
-    "test": "npm run build && cross-env NODE_ENV=test mocha --require babel-register"
+    "test": "BABEL_ENV=test mocha --compilers js:babel-core/register \"{,!(node_modules)/**/}*.spec.js\"",
+    "test:watch": "npm run test -- -w"
   },
   "repository": {
     "type": "git",
