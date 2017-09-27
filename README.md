@@ -1,5 +1,7 @@
 # marc-record-validate-cli
 
+[![Build Status](https://travis-ci.org/NatLibFi/marc-record-validate-cli.svg?branch=fix)](https://travis-ci.org/NatLibFi/marc-record-validate-cli)
+
 ### Description
 
 A command-line client for validating and updating MARC records using [marc-record-validate](https://github.com/NatLibFi/marc-record-validate) type validators. A work in progress.
