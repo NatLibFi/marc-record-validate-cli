@@ -1,25 +1,11 @@
 import 'babel-polyfill';
 import Record from 'marc-record-js';
 import * as yargs from 'yargs';
-import MelindaClient from '@natlibfi/melinda-api-client';
-import validate from './config';
+import { validate, client } from './config';
 
 if (!process.env.VALIDATE_USER || !process.env.VALIDATE_PASS) {
   throw new Error('Environment variable(s) VALIDATE_USER and/or VALIDATE_PASS not set');
 }
-
-/**
- * Initialize melinda-api-client, read credentials from environment variables
- */
-const client = new MelindaClient({
-  endpoint: process.env.VALIDATE_API || 'http://melinda.kansalliskirjasto.fi/API/latest/',
-  user: process.env.VALIDATE_USER,
-  password: process.env.VALIDATE_PASS
-});
-
-import validateFactory from '@natlibfi/marc-record-validators-melinda';
-
-//const validate = validateFactory({ fix: true });
 
 /**
  * Parse the command-line arguments.

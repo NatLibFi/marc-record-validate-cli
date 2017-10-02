@@ -1,9 +1,10 @@
 import validatorFactory from 'marc-record-validate';
+import MelindaClient from '@natlibfi/melinda-api-client';
 
 /**
  * Define active validators below.
  */
-export default validatorFactory([
+const validate = validatorFactory([
   /**
    * validator name: decomposer
    * action: perform character normalizations
@@ -32,3 +33,14 @@ export default validatorFactory([
     options: '500'
   }]
 });
+
+/**
+ * Initialize melinda-api-client, read credentials from environment variables
+ */
+const client = new MelindaClient({
+  endpoint: process.env.VALIDATE_API || 'http://melinda.kansalliskirjasto.fi/API/latest/',
+  user: process.env.VALIDATE_USER,
+  password: process.env.VALIDATE_PASS
+});
+
+export { validate, client }
