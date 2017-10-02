@@ -1,6 +1,0 @@
-{
-  "melinda": {
-    "host": "http://melinda.kansalliskirjasto.fi",
-    "path": "/API/latest/bib/"
-  }
-}
