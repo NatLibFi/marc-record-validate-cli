@@ -58,11 +58,8 @@ export async function fix(id) {
     }
     const originalRec = Record.clone(record);
     let results = await validate(record);
-    console.log(results)
     // If the record has been mutated, revalidate it
     if (!Record.isEqual(originalRec, record)) {
-      console.log('Revalidating after changes...');
-      console.log("moi")
       results = await validate(record);
     }
     return record;
