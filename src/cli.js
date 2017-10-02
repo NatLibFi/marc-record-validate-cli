@@ -2,12 +2,15 @@ import 'babel-polyfill';
 import Record from 'marc-record-js';
 import * as yargs from 'yargs';
 import MelindaClient from '@natlibfi/melinda-api-client';
-import * as _ from 'lodash';
+import validate from './config';
 
 if (!process.env.VALIDATE_USER || !process.env.VALIDATE_PASS) {
   throw new Error('Environment variable(s) VALIDATE_USER and/or VALIDATE_PASS not set');
 }
 
+/**
+ * Initialize melinda-api-client, read credentials from environment variables
+ */
 const client = new MelindaClient({
   endpoint: process.env.VALIDATE_API || 'http://melinda.kansalliskirjasto.fi/API/latest/',
   user: process.env.VALIDATE_USER,
@@ -16,12 +19,10 @@ const client = new MelindaClient({
 
 import validateFactory from '@natlibfi/marc-record-validators-melinda';
 
-const validate = validateFactory({
-  fix: true
-});
+//const validate = validateFactory({ fix: true });
 
 /**
- * A scaffold for parsing the command-line arguments.
+ * Parse the command-line arguments.
  */
 const argv = yargs
   .usage('Usage: $0 <command> [options]')
@@ -41,47 +42,40 @@ function isValid(id) {
   return Number(id) > 0 && Number(id) < 100000000;
 }
 
-function parseValidatorReport(report) {
-  return typeof(report);
-}
-
 /**
  * Fetch and validate a record
- * @param {string} - Record object
+ * @param {string} - Record id
  * @returns {Promise} - Resolves with the validated record.
  */
-export async function fixRecord(record) {
-  const originalRec = Record.clone(record);
-  let results = await validate(record);
-  // If the record has been mutated, revalidate it
-  if (!Record.isEqual(originalRec, record)) {
-    let newResults = await validate(record);
-  }
-  return results;
-}
-
-export async function getRecord(id) {
+export async function fix(id) {
   if (!isValid(id)) {
     throw new Error(`Invalid record id: ${id}`);
   }
   try {
-    return await client.loadRecord(id);
-  }
-  catch (err) {
-    throw new Error(`No record with id ${id}`);
+    let record = await client.loadRecord(id);
+    if (!record) {
+      return null;
+    }
+    const originalRec = Record.clone(record);
+    let results = await validate(record);
+    // If the record has been mutated, revalidate it
+    if (!Record.isEqual(originalRec, record)) {
+      results = await validate(record);
+    }
+    return record;
+  } catch(e) {
+    return Promise.reject(e);
   }
 }
 
-/**
- * Check args and call the needed functions here.
- * All console printing should be done here.
- */
+export async function save(record) {
+  const response = await client.updateRecord(record);
+  console.log(response);
+  return response;
+}
 
-/* Fix a single record (--fix / -f flags) */
-if (argv.fix) {
-  let record = "";
-  getRecord(argv.fix).then(data => {
-    record = data;
-  })
-  .catch(err => console.log(err));
+export async function validateAndFix(id) {
+  const record = await fix(id);
+  const response = await save(record);
+  return response;
 }
