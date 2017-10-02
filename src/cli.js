@@ -2,11 +2,15 @@ import 'babel-polyfill';
 import Record from 'marc-record-js';
 import * as yargs from 'yargs';
 import MelindaClient from '@natlibfi/melinda-api-client';
+import validate from './config';
 
 if (!process.env.VALIDATE_USER || !process.env.VALIDATE_PASS) {
   throw new Error('Environment variable(s) VALIDATE_USER and/or VALIDATE_PASS not set');
 }
 
+/**
+ * Initialize melinda-api-client, read credentials from environment variables
+ */
 const client = new MelindaClient({
   endpoint: process.env.VALIDATE_API || 'http://melinda.kansalliskirjasto.fi/API/latest/',
   user: process.env.VALIDATE_USER,
@@ -15,12 +19,10 @@ const client = new MelindaClient({
 
 import validateFactory from '@natlibfi/marc-record-validators-melinda';
 
-const validate = validateFactory({
-  fix: true
-});
+//const validate = validateFactory({ fix: true });
 
 /**
- * A scaffold for parsing the command-line arguments.
+ * Parse the command-line arguments.
  */
 const argv = yargs
   .usage('Usage: $0 <command> [options]')
@@ -56,9 +58,11 @@ export async function fix(id) {
     }
     const originalRec = Record.clone(record);
     let results = await validate(record);
+    console.log(results)
     // If the record has been mutated, revalidate it
     if (!Record.isEqual(originalRec, record)) {
       console.log('Revalidating after changes...');
+      console.log("moi")
       results = await validate(record);
     }
     return record;
