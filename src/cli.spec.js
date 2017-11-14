@@ -7,7 +7,7 @@ chai.use(chaiAsPromised);
 
 describe('fix', () => {
   it('Should be able to fetch a record', async () => {
-    const res = await fix('123');
+    const res = await fix('124');
     expect(res).to.be.an.instanceof(Object);
   });
 

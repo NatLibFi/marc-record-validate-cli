@@ -1,6 +1,7 @@
 import 'babel-polyfill';
 import * as fs from 'fs';
 import Record from 'marc-record-js';
+import Serializers from 'marc-record-serializers';
 import * as _ from 'lodash';
 import { MongoClient } from 'mongodb';
 import * as yargs from 'yargs';
@@ -53,49 +54,95 @@ export async function fix(id) {
   }
 }
 
-export async function save(record) {
-  const response = await client.updateRecord(record);
-  return response;
-}
-
+/**
+ * Fetch and validate a record
+ * @param {string} id - Record id
+ * @returns {object} - Returns an object containing the id,
+ * the unmodified original record (in MARCXML),
+ * the response from validators,
+ * the fixed record and
+ * a response from the API when (if) the record was changed.
+ */
 export async function validateAndFix(id) {
   if (!isValid(id)) {
     throw new Error(`Invalid record id: ${id}`);
   }
-  console.log(`Fetching record ${id}...`);
-  const record = await client.loadRecord(id);
-  if (record) {
+  console.log(`Fetching record ${id}`);
+  try {
+    let record = await client.loadRecord(id);
     const originalRec = Record.clone(record);
-    console.log(`Validating record ${id}`);
-    const results = await validate(record);
-    if (results.failed) {
-      Promise.reject('Validation failed.');
+    const report = await validate(record);
+    let apiResponse = null;
+    if (!record.equalsTo(originalRec)) {
+      // If the record has been mutated, revalidate it
+      record = await validate(record);
+      apiResponse = await client.updateRecord(record);
+      console.log(apiResponse)
     }
-    console.log(results)
+    return {
+      id: id,
+      originalRec: Serializers.MARCXML.toMARCXML(Record.clone(record)),
+      report: report,
+      validatedRec: Serializers.MARCXML.toMARCXML(record),
+      apiResponse: apiResponse
+    }
+  } catch (e) {
+    console.log(`Processing record ${id} failed.`);
+    return `Processing record ${id} failed: ${e}`;
   }
-  const response = await save(record);
-  // TODO: Log response messages in a sane way.
-  // TODO: Log undo information in db.
-  console.log(response)
-  return response;
 }
 
-export async function validateAndFixMultiple(idlist, chunkSize) {
-  const [head, ...tail] = _.chunk(idlist, chunkSize);
-  if (head) {
-    Promise.all(head.map(validateAndFix)).then(results => {
-      console.log(results);
-      validateAndFixMultiple(tail, chunkSize);
+function getTimeStamp() {
+  const date = new Date();
+  // will display time in 21:00:00 format
+  return `${date.getFullYear()}-${1+date.getMonth()}-${date.getDate()}_${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+}
+
+function logToDb(data, cb) {
+  MongoClient.connect(mongoUrl, (err, db) => {
+    if (err) throw err;
+    db.collection("test").insert(data, (err, doc) => {
+      if (err) throw err;
+      db.close();
+      cb(doc);
     });
+  });
+}
+
+export function validateAndFixMultiple(idlist, chunkSize, acc = {"errs": [], "recs": [], "total": idlist.length}) {
+  console.log(getTimeStamp())
+  const [head, ...tail] = _.chunk(idlist, chunkSize);
+  let processedCount = acc.errs.length + acc.recs.length;
+  console.log(`Processing records no ${1+processedCount}-${processedCount+head.length}/${acc.total}...`);
+  if (head) {
+    Promise.all(head.map(validateAndFix))
+      .then(results => {
+        let errors = _.filter(results, (i) => _.isString(i));
+        let res = _.filter(results, (i) => !_.isString(i));
+        acc.errs = _.concat(acc.errs, errors);
+        acc.recs = _.concat(acc.recs, res);
+        if (tail.length > 0) {
+          validateAndFixMultiple([].concat.apply([], tail), chunkSize, acc);
+        } else {
+          console.log("Nyt muistiin.")
+          logToDb(acc, (doc) => {
+            console.log(doc);
+            console.log("Done!");
+            console.log(`Amount of recs processed: ${acc.errs.length+acc.recs.length}`);
+          });
+        }
+      })
+      .catch(err => console.log("In the err block, " + err));
   }
-  console.log("Done.");
 }
 
 /**
  * Process command-line arguments.
  */
 if (argv.f) {
-  validateAndFix(argv.f);
+  validateAndFix(argv.f)
+    .then(resp => console.log(resp))
+    .catch(err => console.log("Kutsutaan: " + err))
 } else if (argv.x) {
   const ids = fs.readFileSync(argv.x, 'utf-8').split('\n').filter(x => x.length);
   validateAndFixMultiple(ids, argv.s || 10);
