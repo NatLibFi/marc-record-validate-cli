@@ -124,7 +124,6 @@ export function validateAndFixMultiple(idlist, chunkSize, acc = {"errs": [], "re
         if (tail.length > 0) {
           validateAndFixMultiple([].concat.apply([], tail), chunkSize, acc);
         } else {
-          console.log("Nyt muistiin.")
           logToDb(acc, (doc) => {
             console.log(doc);
             console.log("Done!");
