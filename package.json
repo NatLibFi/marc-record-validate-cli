@@ -30,13 +30,14 @@
   },
   "homepage": "https://github.com/NatLibFi/marc-record-validate-cli#readme",
   "dependencies": {
+    "@natlibfi/marc-record-validators-melinda": "git+https://github.com/NatLibFi/marc-record-validators-melinda.git",
     "@natlibfi/melinda-api-client": "git+https://github.com/NatLibFi/melinda-api-client.git",
     "babel-polyfill": "^6.26.0",
     "lodash": "^4.17.4",
     "marc-record-js": "git+https://github.com/petuomin/marc-record-js.git",
     "marc-record-serializers": "git+https://github.com/petuomin/marc-record-serializers.git",
     "marc-record-validate": "^1.0.2",
-    "@natlibfi/marc-record-validators-melinda": "git+https://github.com/NatLibFi/marc-record-validators-melinda.git",
+    "mongodb": "^2.2.33",
     "yargs": "^8.0.2"
   },
   "devDependencies": {

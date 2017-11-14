@@ -1,11 +1,10 @@
 import 'babel-polyfill';
+import * as fs from 'fs';
 import Record from 'marc-record-js';
+import * as _ from 'lodash';
+import { MongoClient } from 'mongodb';
 import * as yargs from 'yargs';
-import { validate, client } from './config';
-
-if (!process.env.VALIDATE_USER || !process.env.VALIDATE_PASS) {
-  throw new Error('Environment variable(s) VALIDATE_USER and/or VALIDATE_PASS not set');
-}
+import { validate, client, mongoUrl } from './config';
 
 /**
  * Parse the command-line arguments.
@@ -56,12 +55,48 @@ export async function fix(id) {
 
 export async function save(record) {
   const response = await client.updateRecord(record);
-  console.log(response);
   return response;
 }
 
 export async function validateAndFix(id) {
-  const record = await fix(id);
+  if (!isValid(id)) {
+    throw new Error(`Invalid record id: ${id}`);
+  }
+  console.log(`Fetching record ${id}...`);
+  const record = await client.loadRecord(id);
+  if (record) {
+    const originalRec = Record.clone(record);
+    console.log(`Validating record ${id}`);
+    const results = await validate(record);
+    if (results.failed) {
+      Promise.reject('Validation failed.');
+    }
+    console.log(results)
+  }
   const response = await save(record);
+  // TODO: Log response messages in a sane way.
+  // TODO: Log undo information in db.
+  console.log(response)
   return response;
+}
+
+export async function validateAndFixMultiple(idlist, chunkSize) {
+  const [head, ...tail] = _.chunk(idlist, chunkSize);
+  if (head) {
+    Promise.all(head.map(validateAndFix)).then(results => {
+      console.log(results);
+      validateAndFixMultiple(tail, chunkSize);
+    });
+  }
+  console.log("Done.");
+}
+
+/**
+ * Process command-line arguments.
+ */
+if (argv.f) {
+  validateAndFix(argv.f);
+} else if (argv.x) {
+  const ids = fs.readFileSync(argv.x, 'utf-8').split('\n').filter(x => x.length);
+  validateAndFixMultiple(ids, argv.s || 10);
 }

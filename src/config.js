@@ -43,4 +43,6 @@ const client = new MelindaClient({
   password: process.env.VALIDATE_PASS
 });
 
-export { validate, client }
+const mongoUrl = process.env.MONGOURL || 'mongodb://localhost:27017/validate';
+
+export { validate, client, mongoUrl };
