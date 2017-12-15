@@ -1,7 +1,8 @@
+/*  global describe:true it:true */
 import chai, { expect } from 'chai';
 // import Record from 'marc-record-js';
 import chaiAsPromised from 'chai-as-promised';
-import { show, validateRecord } from '../src/operations.js';
+import { show, validateRecord, fileFix } from '../src/operations.js';
 
 chai.use(chaiAsPromised);
 
@@ -27,5 +28,11 @@ describe('validateRecord', () => {
     expect(validateRecord('123!')).to.be.rejected;
     expect(validateRecord('1 23')).to.be.rejected;
     expect(validateRecord('123019824981274981274')).to.be.rejected;
+  });
+});
+
+describe('fileFix', () => {
+  it('Should throw because the file format is invalid', () => {
+    expect(fileFix('./data/testrecord.end')).to.be.rejected;
   });
 });
