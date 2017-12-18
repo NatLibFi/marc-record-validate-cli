@@ -56,11 +56,13 @@ const testRec = `
       <subfield code="o">HL00158091</subfield>
     </datafield></record>`;
 
-const mockGetResponse = nock(process.env.VALIDATE_API)
-  .get('/bib/009877349')
-  .reply(200, testRec);
-
 describe('show', () => {
+  beforeEach(() => {
+    nock(process.env.VALIDATE_API)
+      .get('/bib/009877349')
+      .reply(200, testRec);
+  });
+
   it('Should be able to fetch a record', async () => {
     const res = await show('009877349');
     expect(res).to.be.a('string');
@@ -68,6 +70,11 @@ describe('show', () => {
 });
 
 describe('validateRecord', () => {
+  beforeEach(() => {
+    nock(process.env.VALIDATE_API)
+      .get('/bib/009877349')
+      .reply(200, testRec);
+  });
   it('Should be able to fetch a record', async () => {
     const res = await validateRecord('009877349');
     expect(res).to.be.an.instanceOf(Object);
