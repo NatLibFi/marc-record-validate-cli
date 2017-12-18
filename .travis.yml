@@ -8,3 +8,4 @@ env:
   global:
     - VALIDATE_USER="test"
     - VALIDATE_PASS="test"
+    - VALIDATE_API="http://melinda.kansalliskirjasto.fi/api/latest"
