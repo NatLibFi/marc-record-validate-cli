@@ -81,34 +81,37 @@ function outputFileName(id, ending = '') {
 }
 
 export async function fileFix(file) {
-  const outputDir = './files';
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir);
-  }
-  const suffix = file.slice(-3).toLowerCase();
-  let fromFileStream = fs.createReadStream(file);
-  fromFileStream.setEncoding('utf8');
-  const outputFile = path.resolve(`${outputDir}/${file.split('/').pop().slice(0,-4)}_validated.xml`);
-  let reader;
-  if (suffix === 'xml') {
-    reader = new Serializers.MARCXML.Reader(fromFileStream);
-  } else if (suffix === 'mrc' || file.slice(-4).toLowerCase() === 'marc') {
-    reader = new Serializers.ISO2709.ParseStream();
-    fromFileStream.pipe(reader);
-  } else if (suffix === 'seq') {
-    reader = new Serializers.AlephSequential.Reader(fromFileStream);
-  } else {
-    throw new Error('Unrecognized filetype.');
-  }
-  const declaration = '<?xml version="1.0" encoding="UTF-8"?><collection xmlns="http://www.loc.gov/MARC21/slim">';
-  fs.appendFileSync(outputFile, declaration);
-  reader.on('data', (rec) => {
-    // const report = validate(rec);
-    validate(rec);
-    const validatedRecordAsXML = Serializers.MARCXML.toMARCXML(rec);
-    fs.appendFileSync(outputFile, validatedRecordAsXML);
-  }).on('end', () => {
-    fs.appendFileSync(outputFile, '</collection>');
+  return new Promise((resolve, reject) => {
+    const outputDir = './files';
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir);
+    }
+    const suffix = file.slice(-3).toLowerCase();
+    let fromFileStream = fs.createReadStream(file);
+    fromFileStream.setEncoding('utf8');
+    const outputFile = path.resolve(`${outputDir}/${file.split('/').pop().slice(0,-4)}_validated.xml`);
+    let reader;
+    if (suffix === 'xml') {
+      reader = new Serializers.MARCXML.Reader(fromFileStream);
+    } else if (suffix === 'mrc' || file.slice(-4).toLowerCase() === 'marc') {
+      reader = new Serializers.ISO2709.ParseStream();
+      fromFileStream.pipe(reader);
+    } else if (suffix === 'seq') {
+      reader = new Serializers.AlephSequential.Reader(fromFileStream);
+    } else {
+      throw new Error('Unrecognized filetype.');
+    }
+    const declaration = '<?xml version="1.0" encoding="UTF-8"?><collection xmlns="http://www.loc.gov/MARC21/slim">';
+    fs.appendFileSync(outputFile, declaration);
+    reader.on('data', (rec) => {
+      // const report = validate(rec);
+      validate(rec);
+      const validatedRecordAsXML = Serializers.MARCXML.toMARCXML(rec);
+      fs.appendFileSync(outputFile, validatedRecordAsXML);
+    }).on('end', () => {
+      fs.appendFileSync(outputFile, '</collection>');
+      resolve(outputFile);
+    });
   });
 }
 

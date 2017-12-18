@@ -1,11 +1,14 @@
 /*  global describe:true it:true */
 import chai, { expect } from 'chai';
 import nock from 'nock';
+import fs from 'fs';
 // import Record from 'marc-record-js';
 import chaiAsPromised from 'chai-as-promised';
-import { show, validateRecord, fileFix } from '../src/operations.js';
+import { show, validateRecord, fileFix, saveLocally } from '../src/operations.js';
+import chaiXml from 'chai-xml';
 
 chai.use(chaiAsPromised);
+chai.use(chaiXml);
 
 const testRec = `
   <record>
@@ -62,7 +65,6 @@ describe('show', () => {
       .get('/bib/009877349')
       .reply(200, testRec);
   });
-
   it('Should be able to fetch a record', async () => {
     const res = await show('009877349');
     expect(res).to.be.a('string');
@@ -95,5 +97,47 @@ describe('validateRecord', () => {
 describe('fileFix', () => {
   it('Should throw because the file format is invalid', () => {
     expect(fileFix('./data/testrecord.end')).to.be.rejected;
+    expect(fileFix('./data/test_ids.txt')).to.be.rejected;
+  });
+  it('Should be able to fix a local file in proper format', () => {
+    let validated1;
+    let validated2;
+    let validated3;
+    fileFix('./data/testdata.mrc').then(outputFileName => {
+      validated1 = fs.readFileSync(outputFileName, 'utf8');
+      expect(validated1).xml.to.be.valid();
+    });
+    fileFix('./data/testbatch.seq').then(outputFileName => {
+      validated2 = fs.readFileSync(outputFileName, 'utf8');
+      expect(validated2).xml.to.be.valid();
+      expect(validated1).to.not.equal(validated2);
+    });
+    fileFix('./data/testdata.xml').then(outputFileName => {
+      validated3 = fs.readFileSync(outputFileName, 'utf8');
+      expect(validated3).xml.to.be.valid();
+      expect(validated2).to.not.equal(validated3);
+    });
+  });
+});
+
+describe('saveLocally', async () => {
+  beforeEach(() => {
+    nock(process.env.VALIDATE_API)
+      .get('/bib/009877349')
+      .reply(200, testRec);
+  });
+  validateRecord('009877349').then(response => {
+    it('Should be able to fetch and save a record', () => {
+      saveLocally(response.validatedRecord).then(res => {
+        const filename = res.split(' ')[1].trim();
+        expect(res).to.be.a('string');
+        expect(res).to.have.string('009877349.xml');
+        expect(res).to.have.string('Saved ');
+      });
+    });
+    it('Should generate a file with properly formatted XML', () => {
+      const filedata = fs.readFileSync(filename, 'utf8');
+      expect(filedata).xml.to.be.valid();
+    });
   });
 });
