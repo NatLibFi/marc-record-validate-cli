@@ -76,19 +76,19 @@ export async function show(id) {
   }
 }
 
-function outputFileName(id) {
-  return path.resolve(`files/${id}_validated.xml`);
+function outputFileName(id, ending = '') {
+  return path.resolve(`files/${id}${ending}.xml`);
 }
 
 export async function fileFix(file) {
+  const outputDir = './files';
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir);
   }
   const suffix = file.slice(-3).toLowerCase();
   let fromFileStream = fs.createReadStream(file);
   fromFileStream.setEncoding('utf8');
-  const outputFile = path.resolve(`${outputDir}/${file.split("/").pop().slice(0,-4)}_validated.xml`);
-  let toFileStream = fs.createWriteStream(outputFile);
+  const outputFile = path.resolve(`${outputDir}/${file.split('/').pop().slice(0,-4)}_validated.xml`);
   let reader;
   if (suffix === 'xml') {
     reader = new Serializers.MARCXML.Reader(fromFileStream);
@@ -103,7 +103,8 @@ export async function fileFix(file) {
   const declaration = '<?xml version="1.0" encoding="UTF-8"?><collection xmlns="http://www.loc.gov/MARC21/slim">';
   fs.appendFileSync(outputFile, declaration);
   reader.on('data', (rec) => {
-    const report = validate(rec);
+    // const report = validate(rec);
+    validate(rec);
     const validatedRecordAsXML = Serializers.MARCXML.toMARCXML(rec);
     fs.appendFileSync(outputFile, validatedRecordAsXML);
   }).on('end', () => {
@@ -111,9 +112,16 @@ export async function fileFix(file) {
   });
 }
 
-export function saveLocally(record) {
+export async function saveLocally(record, ending='') {
   const id = record.get('001')[0].value;
-  const fileName = outputFileName(id);
+  const fileName = outputFileName(id, ending);
   const validatedRecordAsXML = Serializers.MARCXML.toMARCXML(record);
-  fs.writeFileSync(fileName, validatedRecordAsXML);
+  return new Promise((resolve, reject) => {
+    fs.writeFile(fileName, validatedRecordAsXML, (err) => {
+      if (err) reject(err);
+      else {
+        resolve(`Saved ${fileName}`);
+      }
+    });
+  });
 }

@@ -55,6 +55,7 @@
     "eslint-plugin-async-await": "0.0.0",
     "istanbul": "^0.4.5",
     "mocha": "^3.5.0",
+    "nock": "^9.1.4",
     "nyc": "^11.2.1"
   }
 }

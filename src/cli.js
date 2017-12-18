@@ -51,7 +51,7 @@ if (argv.s) {
   const id = argv.f;
   fix(id)
     .then(res => {
-      const { updateResponse, validatedRecord, results } = res;
+      const { originalRecord, updateResponse, validatedRecord, results } = res;
       const message = _.map(updateResponse.messages, 'message').join('\n');
       console.log(`${message}
       ==============
@@ -61,6 +61,8 @@ if (argv.s) {
 
       ${JSON.stringify(results)}
       `);
+      saveLocally(originalRecord, '_original').then(res => console.log(res));
+      saveLocally(validatedRecord, '_validated').then(res => console.log(res));
     })
     .catch(err => {
       const errs = _.map(err.errors, 'message').join('\n');
@@ -68,8 +70,8 @@ if (argv.s) {
     });
 } else if (argv.x) {
   const file = argv.x;
-  fileFix(file).then(res => console.log('Done.'))
+  fileFix(file).then(res => console.log(`Done. ${res}`))
     .catch(err => console.log(err));
-} else if (argv.m)  {
+} else if (argv.m) {
   console.log('TODO');
 }
