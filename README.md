@@ -27,7 +27,7 @@ The client supports the following flags:
 * -v, --validate - Validate a single record without updating the database. Takes a record id as a parameter. Example: `node build/cli.js -v 12394`.
 * -f, --fix - Validates and fixes a single record and updates it in the database. Example: `node build/cli.js -f 12394`.
 * -l, --localfix - Validates and fixes a single record and saves the updated record locally (as MARCXML). Example: `node build/cli.js -l 12394`.
-* -x, --filefix - Validates and fixes record(s) from a local file, saves the result locally. The input records can be in ISO2907, MARCXML or Aleph Sequential file format, the output is in MARCXML. Example: `node build/cli.js -x inputrecs.mrc`.
+* -x, --filefix - Validates and fixes record(s) from a local file, saves the result locally. The input records can be in ISO2709, MARCXML or Aleph Sequential file format, the output is in MARCXML. Example: `node build/cli.js -x inputrecs.mrc`.
 * -m, --fixmultiple - Reads multiple record ids from a local file, validates and fixes them in the database. Example: `node build/cli.js -m lotsofrecs.txt`. TODO
 * -s, --show - Prints a record in the terminal. Example: `node build/cli.js -s 12345`.
 
