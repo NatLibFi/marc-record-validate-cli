@@ -7,13 +7,8 @@ import Record from 'marc-record-js';
 import path from 'path';
 import Serializers from 'marc-record-serializers';
 import fs from 'fs';
-import util from 'util';
-const Transform = require('stream').Transform;
-
 // import * as _ from 'lodash';
 import { validate, client } from './config';
-
-const outputDir = './files';
 
 function isValid(id) {
   return Number(id) > 0 && Number(id) < 100000000;
@@ -73,36 +68,16 @@ export async function show(id) {
   if (!isValid(id)) {
     throw new Error(`Invalid record id: ${id}`);
   }
-  // console.log(`Fetching record ${id}`);
   try {
     let record = await client.loadRecord(id);
-    // console.log(record)
     return record.toString();
   } catch (e) {
-    // console.log(`Processing record ${id} failed.`);
     return `Processing record ${id} failed: ${e}`;
   }
 }
 
-
-util.inherits(RecordValidator, Transform);
-
-function RecordValidator(options) {
-  options = options || {};
-  options.writableObjectMode = true;
-	options.readableObjectMode = true;
-
-	Transform.call(this, options);
-  console.log("moi")
-
-  this._transform = function(record, encoding, done) {
-    let self = this;
-    validate(record).then(res => {
-      self.push(record);
-      console.log(res);
-      done();
-    }).done();
-  }
+function outputFileName(id) {
+  return path.resolve(`files/${id}_validated.xml`);
 }
 
 export async function fileFix(file) {
@@ -129,10 +104,16 @@ export async function fileFix(file) {
   fs.appendFileSync(outputFile, declaration);
   reader.on('data', (rec) => {
     const report = validate(rec);
-    console.log(rec);
     const validatedRecordAsXML = Serializers.MARCXML.toMARCXML(rec);
     fs.appendFileSync(outputFile, validatedRecordAsXML);
   }).on('end', () => {
     fs.appendFileSync(outputFile, '</collection>');
   });
+}
+
+export function saveLocally(record) {
+  const id = record.get('001')[0].value;
+  const fileName = outputFileName(id);
+  const validatedRecordAsXML = Serializers.MARCXML.toMARCXML(record);
+  fs.writeFileSync(fileName, validatedRecordAsXML);
 }

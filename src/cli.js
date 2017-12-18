@@ -1,6 +1,6 @@
 import * as yargs from 'yargs';
 import * as _ from 'lodash';
-import { show, validateRecord, fix, fileFix } from './operations.js';
+import { show, validateRecord, fix, fileFix, saveLocally } from './operations.js';
 
 /**
  * Parse the command-line arguments.
@@ -29,9 +29,9 @@ const argv = yargs
 if (argv.s) {
   // Show a single record.
   show(argv.s).then(rec => console.log(rec));
-} else if (argv.v) {
+} else if (argv.v || argv.l) {
   // Validate a single record without updating the db.
-  const id = argv.v;
+  const id = argv.v ? argv.v : argv.l;
   console.log(`Validating record ${id}`);
   validateRecord(id).then(res => {
     console.log(res.results);
@@ -41,6 +41,9 @@ if (argv.s) {
     }
     console.log('Validated record:');
     console.log(res.validatedRecord.toString());
+    if (argv.l) {
+      saveLocally(res.validatedRecord);
+    }
   }).catch(err => {
     console.log(err);
   });
@@ -67,4 +70,6 @@ if (argv.s) {
   const file = argv.x;
   fileFix(file).then(res => console.log('Done.'))
     .catch(err => console.log(err));
+} else if (argv.m)  {
+  console.log('TODO');
 }
