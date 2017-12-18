@@ -1,6 +1,6 @@
 # marc-record-validate-cli
 
-[![Build Status](https://travis-ci.org/NatLibFi/marc-record-validate-cli.svg?branch=fix)](https://travis-ci.org/NatLibFi/marc-record-validate-cli)
+[![Build Status](https://travis-ci.org/NatLibFi/marc-record-validate-cli.svg?branch=master)](https://travis-ci.org/NatLibFi/marc-record-validate-cli)
 [![Coverage Status](https://coveralls.io/repos/github/NatLibFi/marc-record-validate-cli/badge.svg?branch=master)](https://coveralls.io/github/NatLibFi/marc-record-validate-cli?branch=master)
 
 ### Description
