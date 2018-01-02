@@ -10,7 +10,7 @@ import fs from 'fs';
 // import * as _ from 'lodash';
 import { validate, client } from './config';
 
-function isValid(id) {
+export function isValid(id) {
   return Number(id) > 0 && Number(id) < 100000000;
 }
 
@@ -53,15 +53,15 @@ export async function fix(id) {
     const response = await client.updateRecord(validatedRecord);
     validationRes['updateResponse'] = response;
     return validationRes;
-  } catch(e) {
+  } catch (e) {
     return Promise.reject(e);
   }
 }
 
-function getTimeStamp() {
+export function getTimeStamp() {
   const date = new Date();
   // will display time in 21:00:00 format
-  return `${date.getFullYear()}-${1+date.getMonth()}-${date.getDate()}_${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+  return `${date.getFullYear()}${1+date.getMonth()}${date.getDate()}${date.getHours()}${date.getMinutes()}${date.getSeconds()}`;
 }
 
 export async function show(id) {
@@ -80,6 +80,11 @@ function outputFileName(id, ending = '') {
   return path.resolve(`files/${id}${ending}.xml`);
 }
 
+/*
+ * Read records from a local file, validate them, fix and write to new file.
+ * @param { string } file - Input file where the records are read.
+ * @returns Promise - File, resolves with the name of the output file.
+ */
 export async function fileFix(file) {
   return new Promise((resolve, reject) => {
     const outputDir = './files';

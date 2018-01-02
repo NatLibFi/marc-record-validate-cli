@@ -57,14 +57,15 @@ const testRec = `
       <subfield code="m">1 soolonuotti (117 sivua). -</subfield>
       <subfield code="z">978-1-4950-6067-0,</subfield>
       <subfield code="o">HL00158091</subfield>
-    </datafield></record>`;
+    </datafield>
+  </record>`;
+
+const api = nock(process.env.VALIDATE_API)
+  .get('/bib/009877349')
+  .reply(200, testRec)
+  .persist();
 
 describe('show', () => {
-  beforeEach(() => {
-    nock(process.env.VALIDATE_API)
-      .get('/bib/009877349')
-      .reply(200, testRec);
-  });
   it('Should be able to fetch a record', async () => {
     const res = await show('009877349');
     expect(res).to.be.a('string');
@@ -72,11 +73,6 @@ describe('show', () => {
 });
 
 describe('validateRecord', () => {
-  beforeEach(() => {
-    nock(process.env.VALIDATE_API)
-      .get('/bib/009877349')
-      .reply(200, testRec);
-  });
   it('Should be able to fetch a record', async () => {
     const res = await validateRecord('009877349');
     expect(res).to.be.an.instanceOf(Object);
@@ -121,11 +117,6 @@ describe('fileFix', () => {
 });
 
 describe('saveLocally', async () => {
-  beforeEach(() => {
-    nock(process.env.VALIDATE_API)
-      .get('/bib/009877349')
-      .reply(200, testRec);
-  });
   validateRecord('009877349').then(response => {
     it('Should be able to fetch and save a record', () => {
       saveLocally(response.validatedRecord).then(res => {
