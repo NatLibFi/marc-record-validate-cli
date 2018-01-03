@@ -8,7 +8,7 @@
     "build:watch": "./node_modules/.bin/babel --watch src/ -d build/",
     "lint": "./node_modules/.bin/eslint src/*.js",
     "lint:all": "npm run lint index.js && npm run lint ./lib/*.js",
-    "test": "BABEL_ENV=test mocha --compilers js:babel-core/register \"{,!(node_modules)/**/}*.spec.js\"",
+    "test": "BABEL_ENV=test mocha --compilers js:babel-core/register ./src/*.spec.js",
     "cover": "node_modules/nyc/bin/nyc.js npm test && node_modules/nyc/bin/nyc.js report --reporter=text-lcov | coveralls",
     "test:watch": "npm run test -- -w",
     "prepublish": "npm run build"
@@ -39,7 +39,7 @@
     "marc-record-js": "git+https://github.com/petuomin/marc-record-js.git",
     "marc-record-serializers": "git+https://github.com/petuomin/marc-record-serializers.git",
     "marc-record-validate": "^1.0.2",
-    "mongodb": "^2.2.33",
+    "winston": "^2.4.0",
     "yargs": "^8.0.2"
   },
   "devDependencies": {
