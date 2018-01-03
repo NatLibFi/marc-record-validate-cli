@@ -104,7 +104,7 @@ export async function fileFix(file) {
     } else if (suffix === 'seq') {
       reader = new Serializers.AlephSequential.Reader(fromFileStream);
     } else {
-      throw new Error('Unrecognized filetype.');
+      reject(new Error('Unrecognized filetype.'));
     }
     const declaration = '<?xml version="1.0" encoding="UTF-8"?><collection xmlns="http://www.loc.gov/MARC21/slim">';
     fs.appendFileSync(outputFile, declaration);

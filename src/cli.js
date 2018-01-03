@@ -120,31 +120,29 @@ if (argv.s) {
 
   let idSets = _.chunk(ids, chunk);
 
-  async function fixAll(idChunks) {
-    const [head, ...tail] = idChunks;
-    if (!head) {
-      console.log("Done.");
-      return true;
-    }
-
-    const results = await Promise.all(head.map(async (id) => {
-      try {
-        let res = await fix(id);
-        logger.log('info', res.results);
-        afterSuccessfulUpdate(res);
-      } catch (err) {
-        const errs = _.map(err.errors, 'message').join('\n');
-        const errorMessage = `Updating record ${id} failed: '${err}'`;
-        console.log(errorMessage);
-        logger.log({
-          level: 'error',
-          message: errorMessage
-        });
-      }
-    }));
-    fixAll(tail);
-  }
-
   fixAll(idSets);
 }
 
+async function fixAll(idChunks) {
+  const [head, ...tail] = idChunks;
+  if (!head) {
+    console.log('Done.');
+    return true;
+  }
+
+  const results = await Promise.all(head.map(async (id) => {
+    try {
+      let res = await fix(id);
+      logger.log('info', res.results);
+      afterSuccessfulUpdate(res);
+    } catch (err) {
+      const errorMessage = `Updating record ${id} failed: '${err}'`;
+      console.log(errorMessage);
+      logger.log({
+        level: 'error',
+        message: errorMessage
+      });
+    }
+  }));
+  fixAll(tail);
+}
