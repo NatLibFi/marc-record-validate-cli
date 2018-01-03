@@ -61,7 +61,6 @@ function afterSuccessfulUpdate(res) {
  */
 if (argv.s) {
   // Show a single record.
-  logger.log('info', 'jeah!') // TEST
   show(argv.s).then(rec => console.log(rec));
 } else if (argv.v || argv.l) {
   // Validate a single record without updating the db.
@@ -89,12 +88,19 @@ if (argv.s) {
       console.log(err);
       const errs = _.map(err.errors, 'message').join('\n');
       console.log(`Updating record ${id} failed: '${errs}'`);
+      logger.log('error', errs);
     });
 } else if (argv.x) {
   const file = argv.x;
   fileFix(file)
-    .then(res => console.log(`Done. ${res}`))
-    .catch(err => console.log(err));
+    .then(res => {
+      console.log(`Done. ${res}`);
+      logger.log('info', res);
+    })
+    .catch(err => {
+      console.log(err);
+      logger.log('error', err);
+    });
 } else if (argv.m) {
   // Read multiple record ids from file, validate and fix.
   const file = argv.m;
@@ -124,10 +130,16 @@ if (argv.s) {
     const results = await Promise.all(head.map(async (id) => {
       try {
         let res = await fix(id);
+        logger.log('info', res.results);
         afterSuccessfulUpdate(res);
       } catch (err) {
         const errs = _.map(err.errors, 'message').join('\n');
-        console.log(`Updating record ${id} failed: '${err}'`);
+        const errorMessage = `Updating record ${id} failed: '${err}'`;
+        console.log(errorMessage);
+        logger.log({
+          level: 'error',
+          message: errorMessage
+        });
       }
     }));
     fixAll(tail);
