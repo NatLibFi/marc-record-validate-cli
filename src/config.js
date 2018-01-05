@@ -24,14 +24,11 @@ const validate = validatorFactory([
    * options: none
    */
   require('@natlibfi/marc-record-validators-melinda/lib/validators/identical-field-eliminator'),
-  require('@natlibfi/marc-record-validators-melinda/lib/validators/sort-keywords'),
+  require('@natlibfi/marc-record-validators-melinda/lib/validators/udk-version-fenni'),
   require('@natlibfi/marc-record-validators-melinda/lib/validators/sort-tag')
 ])({
-  fix: true,
-  validators: [{
-    name: 'sort-tag',
-    options: '500'
-  }]
+  failOnError: false,
+  fix: true
 });
 
 /**

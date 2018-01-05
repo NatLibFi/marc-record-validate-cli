@@ -32,7 +32,7 @@
   },
   "homepage": "https://github.com/NatLibFi/marc-record-validate-cli#readme",
   "dependencies": {
-    "@natlibfi/marc-record-validators-melinda": "git+https://github.com/NatLibFi/marc-record-validators-melinda.git",
+    "@natlibfi/marc-record-validators-melinda": "git+https://github.com/NatLibFi/marc-record-validators-melinda.git#development",
     "@natlibfi/melinda-api-client": "git+https://github.com/NatLibFi/melinda-api-client.git",
     "babel-polyfill": "^6.26.0",
     "lodash": "^4.17.4",

@@ -5,7 +5,7 @@
 
 ### Description
 
-A command-line client for validating and updating MARC records using [marc-record-validate](https://github.com/NatLibFi/marc-record-validate) type validators. A work in progress.
+A command-line client for validating and updating MARC records using [marc-record-validate](https://github.com/NatLibFi/marc-record-validate) type validators.
 
 ### Configuration and setup
 
@@ -28,7 +28,7 @@ The client supports the following flags:
 * -f, --fix - Validates and fixes a single record and updates it in the database. Example: `node build/cli.js -f 12394`.
 * -l, --localfix - Validates and fixes a single record and saves the updated record locally (as MARCXML). Example: `node build/cli.js -l 12394`.
 * -x, --filefix - Validates and fixes record(s) from a local file, saves the result locally. The input records can be in ISO2709, MARCXML or Aleph Sequential file format, the output is in MARCXML. Example: `node build/cli.js -x inputrecs.mrc`.
-* -m, --fixmultiple - Reads multiple record ids from a local file, validates and fixes them in the database. Example: `node build/cli.js -m lotsofrecs.txt`. When using the flag -m, you can add an optimal flag `-c` / `--chunksize` for specifying the chunk size for the batch operation, i.e. how large a set of records are processed simultaneously. By default this value is 10. If `chunksize` is set to 1, records are processed synchronously. Example: `node build/cli.js -m lotsofrecs.txt -c 20`.
+* -m, --fixmultiple - Reads multiple record ids from a local file, validates and fixes them in the database. Example: `node build/cli.js -m lotsofrecs.txt`. When using the flag -m, you can add an optimal flag `-c` / `--chunksize` for specifying the chunk size for the batch operation, i.e. how large a set of records is processed simultaneously. By default this value is 5. If `chunksize` is set to 1, records are processed synchronously. Example: `node build/cli.js -m lotsofrecs.txt -c 10`.
 * -s, --show - Prints a record in the terminal. Example: `node build/cli.js -s 12345`.
 
 ### License and copyright
