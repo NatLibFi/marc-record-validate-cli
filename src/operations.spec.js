@@ -4,7 +4,7 @@ import nock from 'nock';
 import fs from 'fs';
 // import Record from 'marc-record-js';
 import chaiAsPromised from 'chai-as-promised';
-import { show, validateRecord, fileFix, saveLocally } from '../src/operations.js';
+import { show, validateRecord, fileFix, saveLocally, formatResults } from '../src/operations.js';
 import chaiXml from 'chai-xml';
 
 chai.use(chaiAsPromised);
@@ -88,6 +88,17 @@ describe('validateRecord', () => {
     expect(validateRecord('1 23')).to.be.rejected;
     expect(validateRecord('123019824981274981274')).to.be.rejected;
   });
+});
+
+
+describe('formatResults', () => {
+  it('Should return a string with correct input', () => {
+    const validationReport = JSON.parse(fs.readFileSync('./data/validationReport.json'));
+    let formatted = formatResults(validationReport);
+    console.log(formatted);
+    expect(formatResults(validationReport)).to.be.a('string');
+  })
+
 });
 
 describe('fileFix', () => {

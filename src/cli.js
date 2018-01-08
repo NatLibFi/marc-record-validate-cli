@@ -3,13 +3,12 @@ import * as yargs from 'yargs';
 import * as _ from 'lodash';
 import * as winston from 'winston';
 import fs from 'fs';
-import { show, validateRecord, fix, fileFix, saveLocally, isValid } from './operations.js';
+import { show, validateRecord, fix, fileFix, saveLocally, isValid, formatResults } from './operations.js';
 
 /**
  * Initialize logging
  */
 const logger = new winston.Logger({
-  level: 'info',
   transports: [
     new (winston.transports.Console)(),
     new (winston.transports.File)({ filename: 'logfile.log' })
@@ -39,7 +38,6 @@ const argv = yargs
   .describe('s', 'Show a single record')
   .argv;
 
-
 function afterSuccessfulUpdate(res) {
   const { originalRecord, updateResponse, validatedRecord, results } = res;
   const message = _.map(updateResponse.messages, 'message').join('\n');
@@ -50,27 +48,73 @@ function afterSuccessfulUpdate(res) {
 
   ${validatedRecord.toString()}
 
-  ${JSON.stringify(results)}
+  ${formatResults(results)}
   `);
   saveLocally(originalRecord, '_original').then(res => console.log(res));
-  saveLocally(validatedRecord, '_validated').then(res => console.log(res));
+  if (results !== "") {
+    /**
+     * If the API results from the update operation is an empty string, the record
+     * has not been updated.
+     */
+    saveLocally(validatedRecord, '_validated').then(res => console.log(res));
+  }
 }
 
 /**
  * Process command-line arguments.
  */
+if (argv.x) {
+  const file = argv.x;
+  console.log(`Validating records from file ${file}.`);
+  fileFix(file)
+    .then(res => {
+      logger.info(res);
+    })
+    .catch(err => {
+      logger.log('error', err);
+    });
+}
+
+/*
+ * Check whether the enviroment variables necessary for the operation are set.
+ * @param {boolean} - creds
+ * @returns {boolean}
+ */
+function checkEnvVars(creds = 'false') {
+
+  if (!process.env.VALIDATE_API) {
+    throw new Error('The environment variable VALIDATE_API is not set.');
+  }
+
+  if (creds && !process.env.VALIDATE_USER || !process.env.VALIDATE_PASS) {
+    throw new Error('Environment variable(s) VALIDATE_USER and/or VALIDATE_PASS are not set.');
+  }
+  return true;
+}
+
 if (argv.s) {
   // Show a single record.
-  show(argv.s).then(rec => console.log(rec));
-} else if (argv.v || argv.l) {
+  checkEnvVars();
+  show(argv.s)
+    .then(rec => console.log(rec))
+    .catch(err => {
+      logging.log({
+        level: 'error',
+        message: err
+      });
+    });
+}
+
+if (argv.v || argv.l) {
+  checkEnvVars(true);
   // Validate a single record without updating the db.
   const id = argv.v ? argv.v : argv.l;
   console.log(`Validating record ${id}`);
   validateRecord(id).then(res => {
-    console.log(res.results);
+    console.log(formatResults(res.results));
     if (res.revalidationResults !== '') {
       console.log('The record was revalidated after changes, the validator output was:');
-      console.log(res.revalidationResults);
+      console.log(formatResults(res.revalidationResults));
     }
     console.log('Validated record:');
     console.log(res.validatedRecord.toString());
@@ -81,6 +125,7 @@ if (argv.s) {
     console.log(err);
   });
 } else if (argv.f) {
+  checkEnvVars(true);
   const id = argv.f;
   fix(id)
     .then(res => afterSuccessfulUpdate(res))
@@ -90,18 +135,8 @@ if (argv.s) {
       console.log(`Updating record ${id} failed: '${errs}'`);
       logger.log('error', errs);
     });
-} else if (argv.x) {
-  const file = argv.x;
-  fileFix(file)
-    .then(res => {
-      console.log(`Done. ${res}`);
-      logger.log('info', res);
-    })
-    .catch(err => {
-      console.log(err);
-      logger.log('error', err);
-    });
 } else if (argv.m) {
+  checkEnvVars(true);
   // Read multiple record ids from file, validate and fix.
   const file = argv.m;
   if (!fs.existsSync(file)) {
@@ -116,15 +151,22 @@ if (argv.s) {
     throw new Error('File does not contain valid record ids.');
   }
 
-  const chunk = argv.c || 10;
+  const chunk = argv.c || 5;
 
   let idSets = _.chunk(ids, chunk);
 
   fixAll(idSets);
 }
 
+/**
+ * Fix a batch of records. Calls itself recursively until all chunks are processed.
+ * @param {array} - idChunks - A list of lists of ids. E.g. [[1, 2, 3], [4, 5, 6]].
+ * @returns {Promise} - Resolves with true when everything is processed. Logs errors in the process.
+ */
 async function fixAll(idChunks) {
+
   const [head, ...tail] = idChunks;
+
   if (!head) {
     console.log('Done.');
     return true;
@@ -144,5 +186,6 @@ async function fixAll(idChunks) {
       });
     }
   }));
+
   fixAll(tail);
 }
