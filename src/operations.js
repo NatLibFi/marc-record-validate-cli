@@ -83,6 +83,7 @@ export async function validateRecord(id) {
       revalidationResults = await validate(record);
     }
     return {
+      id: originalRec.get('001')[0].value,
       originalRecord: originalRec,
       results: results,
       revalidationResults: revalidationResults,
@@ -196,6 +197,11 @@ export async function saveLocally(record, ending='') {
   const id = record.get('001')[0].value;
   const fileName = outputFileName(id, ending);
   const validatedRecordAsXML = Serializers.MARCXML.toMARCXML(record);
+
+  if (!fs.existsSync('./files')) {
+    fs.mkdirSync('./files');
+  }
+
   return new Promise((resolve, reject) => {
     fs.writeFile(fileName, validatedRecordAsXML, (err) => {
       if (err) reject(err);

@@ -80,7 +80,7 @@ if (argv.x) {
  * @param {boolean} - creds
  * @returns {boolean}
  */
-function checkEnvVars(creds = 'false') {
+export function checkEnvVars(creds = 'false') {
 
   if (!process.env.VALIDATE_API) {
     throw new Error('The environment variable VALIDATE_API is not set.');
@@ -130,9 +130,8 @@ if (argv.v || argv.l) {
   fix(id)
     .then(res => afterSuccessfulUpdate(res))
     .catch(err => {
-      console.log(err);
-      const errs = _.map(err.errors, 'message').join('\n');
-      console.log(`Updating record ${id} failed: '${errs}'`);
+      // const errs = _.map(err.errors, 'message').join('\n');
+      console.log(`Updating record ${id} failed: '${err}'`);
       logger.log('error', errs);
     });
 } else if (argv.m) {
@@ -155,17 +154,20 @@ if (argv.v || argv.l) {
 
   let idSets = _.chunk(ids, chunk);
 
-  fixAll(idSets);
+  fixAll(idSets, ids.length);
 }
 
 /**
  * Fix a batch of records. Calls itself recursively until all chunks are processed.
  * @param {array} - idChunks - A list of lists of ids. E.g. [[1, 2, 3], [4, 5, 6]].
+ * @param {number} - total - The total number of records to process.
  * @returns {Promise} - Resolves with true when everything is processed. Logs errors in the process.
  */
-async function fixAll(idChunks) {
+async function fixAll(idChunks, total) {
 
   const [head, ...tail] = idChunks;
+  const left = head.length * tail.length;
+  const done = total - left;
 
   if (!head) {
     console.log('Done.');
@@ -175,6 +177,7 @@ async function fixAll(idChunks) {
   const results = await Promise.all(head.map(async (id) => {
     try {
       let res = await fix(id);
+      res.results['id'] = id;
       logger.log('info', res.results);
       afterSuccessfulUpdate(res);
     } catch (err) {
@@ -187,5 +190,6 @@ async function fixAll(idChunks) {
     }
   }));
 
-  fixAll(tail);
+  console.log(`${done}/${total} (${Math.round(done / total * 100)} %) records processed.`);
+  fixAll(tail, total);
 }
