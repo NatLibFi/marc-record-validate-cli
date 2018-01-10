@@ -22,6 +22,8 @@ const argv = yargs
   .usage('Usage: node ./build/cli.js <options>')
   .help('h')
   .alias('h', 'help')
+  .alias('s', 'show')
+  .describe('s', 'Show a single record')
   .alias('v', 'validate')
   .describe('v', 'Validate a single record')
   .alias('f', 'fix')
@@ -32,10 +34,19 @@ const argv = yargs
   .describe('x', 'Validate and fix a set of records from local file, save results locally')
   .alias('m', 'fixmultiple')
   .describe('m', 'Read record ids from file, fix all')
-  .alias('c', 'chunksize')
-  .describe('c', 'The chunksize for processing ids')
-  .alias('s', 'show')
-  .describe('s', 'Show a single record')
+  .option('c', {
+    alias: 'chunksize',
+    demandOption: false,
+    default: 5,
+    describe: 'OPTIONAL: The size of the chunks to process with fixmultiple',
+    type: 'number'
+  })
+  .option('t', {
+    alias: 'timeinterval',
+    demandOption: false,
+    describe: 'OPTIONAL: The timeframe in a day in which long-running fixmultiple jobs are run (e.g. 17-06)',
+    type: 'string'
+  })
   .argv;
 
 function afterSuccessfulUpdate(res) {
@@ -51,11 +62,7 @@ function afterSuccessfulUpdate(res) {
   ${formatResults(results)}
   `);
   saveLocally(originalRecord, '_original').then(res => console.log(res));
-  if (results !== "") {
-    /**
-     * If the API results from the update operation is an empty string, the record
-     * has not been updated.
-     */
+  if (!originalRecord.equalsTo(validatedRecord)) {
     saveLocally(validatedRecord, '_validated').then(res => console.log(res));
   }
 }
@@ -157,6 +164,26 @@ if (argv.v || argv.l) {
   fixAll(idSets, ids.length);
 }
 
+export function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Check whether the current moment is within the 'timeinterval' range for fixmultiple
+ * @returns {boolean}
+ */
+export function isWithinTimeinterval() {
+  if (!argv.t) {
+    return true;
+  }
+  const [start, end] = argv.t.split('-').map(n => Number(n));
+  const curr = new Date().getHours();
+  if (isNaN(start) || isNaN(end) || start < 0 || start > 23 || end < 0 || end > 23) {
+    throw new Error(`Invalid time interval: ${argv.t}, it should be in format like: '18-06'.`);
+  }
+  return (curr >= start && curr < 24) && (curr >= 0 && curr <= end);
+}
+
 /**
  * Fix a batch of records. Calls itself recursively until all chunks are processed.
  * @param {array} - idChunks - A list of lists of ids. E.g. [[1, 2, 3], [4, 5, 6]].
@@ -165,31 +192,38 @@ if (argv.v || argv.l) {
  */
 async function fixAll(idChunks, total) {
 
-  const [head, ...tail] = idChunks;
-  const left = head.length * tail.length;
-  const done = total - left;
+  if (!isWithinTimeinterval()) {
+    console.log(`Current time (${new Date().getHours()}) is not within the time limits (${argv.t}) to run. Sleeping for a minute...`);
+    await sleep(60000); // Sleep for a minute and recur
+    fixAll(idChunks, total);
+  } else {
+    const [head, ...tail] = idChunks;
 
-  if (!head) {
-    console.log('Done.');
-    return true;
+    if (!head) {
+      console.log('Done.');
+      return true;
+    }
+
+    const left = head.length * tail.length;
+    const done = total - left;
+
+    const results = await Promise.all(head.map(async (id) => {
+      try {
+        let res = await fix(id);
+        res.results['id'] = id;
+        logger.log('info', res.results);
+        afterSuccessfulUpdate(res);
+      } catch (err) {
+        const errorMessage = `Updating record ${id} failed: '${err}'`;
+        console.log(errorMessage);
+        logger.log({
+          level: 'error',
+          message: errorMessage
+        });
+      }
+    }));
+    console.log(`${done}/${total} (${Math.round(done / total * 100)} %) records processed.`);
+    fixAll(tail, total);
   }
 
-  const results = await Promise.all(head.map(async (id) => {
-    try {
-      let res = await fix(id);
-      res.results['id'] = id;
-      logger.log('info', res.results);
-      afterSuccessfulUpdate(res);
-    } catch (err) {
-      const errorMessage = `Updating record ${id} failed: '${err}'`;
-      console.log(errorMessage);
-      logger.log({
-        level: 'error',
-        message: errorMessage
-      });
-    }
-  }));
-
-  console.log(`${done}/${total} (${Math.round(done / total * 100)} %) records processed.`);
-  fixAll(tail, total);
 }
