@@ -9,9 +9,9 @@
     "lint": "./node_modules/.bin/eslint src/*.js",
     "lint:all": "npm run lint index.js && npm run lint ./lib/*.js",
     "test": "BABEL_ENV=test mocha --compilers js:babel-core/register ./src/*.spec.js",
+    "test:watch": "npm run test -- -w",
     "cover": "node_modules/nyc/bin/nyc.js npm test && node_modules/nyc/bin/nyc.js report --reporter=text-lcov | coveralls",
     "reinstall": "rm -r node_modules && npm install",
-    "test:watch": "npm run test -- -w",
     "prepublish": "npm run build"
   },
   "repository": {

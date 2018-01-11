@@ -172,16 +172,23 @@ export function sleep(ms) {
  * Check whether the current moment is within the 'timeinterval' range for fixmultiple
  * @returns {boolean}
  */
-export function isWithinTimeinterval() {
-  if (!argv.t) {
+export function isWithinTimeinterval(range, date = new Date()) {
+
+  if (!range || range.length !== 5) {
+    throw new Error('Timerange should be in format "11-02"');
+  }
+
+  if ([0,6].includes(date.getDay())) { // Time range isn't adhered to on weekends.
     return true;
   }
-  const [start, end] = argv.t.split('-').map(n => Number(n));
-  const curr = new Date().getHours();
+
+  const [start, end] = range.split('-').map(n => Number(n));
+  const curr = date.getHours();
+
   if (isNaN(start) || isNaN(end) || start < 0 || start > 23 || end < 0 || end > 23) {
-    throw new Error(`Invalid time interval: ${argv.t}, it should be in format like: '18-06'.`);
+    throw new Error(`Invalid time interval: ${range}, it should be in format like: '18-06'.`);
   }
-  return (curr >= start && curr < 24) && (curr >= 0 && curr <= end);
+  return start < end ? (curr >= start && curr < end) : (curr >= start || curr < end);
 }
 
 /**
@@ -192,9 +199,9 @@ export function isWithinTimeinterval() {
  */
 async function fixAll(idChunks, total) {
 
-  if (!isWithinTimeinterval()) {
-    console.log(`Current time (${new Date().getHours()}) is not within the time limits (${argv.t}) to run. Sleeping for a minute...`);
-    await sleep(60000); // Sleep for a minute and recur
+  if (!isWithinTimeinterval(argv.t)) {
+    console.log(`Current time (${new Date().getHours()}:${new Date().getMinutes() < 10 ? '0' + new Date().getMinutes() : new Date().getMinutes()}) is not within the time limits (${argv.t}) to run. Sleeping for 5 minutes...`);
+    await sleep(60000 * 5); // Sleep for 5 minutes and recur
     fixAll(idChunks, total);
   } else {
     const [head, ...tail] = idChunks;

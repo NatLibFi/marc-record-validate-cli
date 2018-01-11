@@ -72,9 +72,6 @@ export async function validateRecord(id) {
   }
   try {
     let record = await client.loadRecord(id);
-    if (!record) {
-      return null;
-    }
     const originalRec = Record.clone(record);
     let results = await validate(record);
     let revalidationResults = '';
@@ -117,22 +114,12 @@ export async function fix(id) {
 }
 
 /**
- * Return a timestamp
- * @returns {string}
- */
-export function getTimeStamp() {
-  const date = new Date();
-  // will display time in 21:00:00 format
-  return `${date.getFullYear()}${1+date.getMonth()}${date.getDate()}${date.getHours()}${date.getMinutes()}${date.getSeconds()}`;
-}
-
-/**
  * Parse a name for an outputfile.
  * @param {string} - id
  * @param {string} - ending
  * @returns {string}
  */
-function outputFileName(id, ending = '') {
+export function outputFileName(id, ending = '') {
   return path.resolve(`files/${id}${ending}.xml`);
 }
 
@@ -162,7 +149,7 @@ export async function fileFix(file) {
     const suffix = file.slice(-3).toLowerCase();
     let fromFileStream = fs.createReadStream(file);
     fromFileStream.setEncoding('utf8');
-    const outputFile = path.resolve(`${outputDir}/${file.split('/').pop().slice(0,-4)}_validated.xml`);
+    const outputFile = `${outputDir}/${file.split('/').pop().slice(0,-4)}_validated.xml`;
     let reader;
     if (suffix === 'xml') {
       reader = new Serializers.MARCXML.Reader(fromFileStream);

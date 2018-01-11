@@ -26,7 +26,6 @@ const validate = validatorFactory([
   require('@natlibfi/marc-record-validators-melinda/lib/validators/identical-field-eliminator'),
   require('@natlibfi/marc-record-validators-melinda/lib/validators/udk-version-fenni'),
   require('@natlibfi/marc-record-validators-melinda/lib/validators/sort-tag')
-  // require('@natlibfi/marc-record-validators-melinda/lib/validators/return-link-fields')
 ])({
   failOnError: false,
   fix: true
