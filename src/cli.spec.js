@@ -36,5 +36,4 @@ describe('isWithinTimeinterval', () => {
     expect(isWithinTimeinterval('11-12', new Date(2018, 1, 4, 1, 0, 0))).to.be.true;
     expect(isWithinTimeinterval('11-12', new Date(2018, 1, 5, 1, 0, 0))).to.be.false;
   });
-
 });

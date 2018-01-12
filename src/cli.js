@@ -11,7 +11,7 @@ import { show, validateRecord, fix, fileFix, saveLocally, isValid, formatResults
 const logger = new winston.Logger({
   transports: [
     new (winston.transports.Console)(),
-    new (winston.transports.File)({ filename: 'logfile.log' })
+    new (winston.transports.File)({ filename: 'logfile.log', json: false })
   ]
 });
 
@@ -65,6 +65,12 @@ function afterSuccessfulUpdate(res) {
   if (!originalRecord.equalsTo(validatedRecord)) {
     saveLocally(validatedRecord, '_validated').then(res => console.log(res));
   }
+  const activeValidators = res.results.validators
+    .filter(validator => validator.validate.length > 0)
+    .map(validator => validator.name)
+    .join(', ');
+  let action = argv.m ? 'fixmultiple' : 'fix';
+  logger.info(`id: ${id}, action: ${action},${argv.m ? ' chunksize: ' + argv.c + ',' : ''} active validators: ${activeValidators}`);
 }
 
 /**
@@ -130,6 +136,7 @@ if (argv.v || argv.l) {
     }
   }).catch(err => {
     console.log(err);
+    logger.error(JSON.stringify(err))
   });
 } else if (argv.f) {
   checkEnvVars(true);
@@ -170,24 +177,27 @@ export function sleep(ms) {
 
 /**
  * Check whether the current moment is within the 'timeinterval' range for fixmultiple
+ * @param {string} - range
+ * @param {Date} - date
  * @returns {boolean}
  */
 export function isWithinTimeinterval(range, date = new Date()) {
 
-  if (!range || range.length !== 5) {
-    throw new Error('Timerange should be in format "11-02"');
-  }
-
-  if ([0,6].includes(date.getDay())) { // Time range isn't adhered to on weekends.
+  if (!range || [0,6].includes(date.getDay())) { // The timerange isn't adhered to on weekends.
     return true;
   }
 
+  if (range.length !== 5) {
+    throw new Error('Timerange should be in format "11-02"');
+  }
+
   const [start, end] = range.split('-').map(n => Number(n));
-  const curr = date.getHours();
 
   if (isNaN(start) || isNaN(end) || start < 0 || start > 23 || end < 0 || end > 23) {
     throw new Error(`Invalid time interval: ${range}, it should be in format like: '18-06'.`);
   }
+
+  const curr = date.getHours();
   return start < end ? (curr >= start && curr < end) : (curr >= start || curr < end);
 }
 
@@ -200,8 +210,10 @@ export function isWithinTimeinterval(range, date = new Date()) {
 async function fixAll(idChunks, total) {
 
   if (!isWithinTimeinterval(argv.t)) {
-    console.log(`Current time (${new Date().getHours()}:${new Date().getMinutes() < 10 ? '0' + new Date().getMinutes() : new Date().getMinutes()}) is not within the time limits (${argv.t}) to run. Sleeping for 5 minutes...`);
-    await sleep(60000 * 5); // Sleep for 5 minutes and recur
+    const date = new Date();
+    const currTime = `${date.getHours()}:${date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()}`;
+    logger.info(`Current time (${currTime}) is not within the time limits (${argv.t}) to run. Sleeping for 20 minutes...`);
+    await sleep(60000 * 20); // Sleep for 20 minutes and recur
     fixAll(idChunks, total);
   } else {
     const [head, ...tail] = idChunks;
@@ -218,7 +230,7 @@ async function fixAll(idChunks, total) {
       try {
         let res = await fix(id);
         res.results['id'] = id;
-        logger.log('info', res.results);
+        // console.log(formatResults(res))
         afterSuccessfulUpdate(res);
       } catch (err) {
         const errorMessage = `Updating record ${id} failed: '${err}'`;
