@@ -105,7 +105,7 @@ describe('formatResults', () => {
 
 describe('fileFix', async () => {
   it('Should throw because the file format is invalid', () => {
-    expect(fileFix('./data/testrecord.end')).to.be.rejected;
+    expect(fileFix('./data/testrecord.edn')).to.be.rejected;
     expect(fileFix('./data/test_ids.txt')).to.be.rejected;
   });
   it('Should be able to fix local files in proper format', async () => {
