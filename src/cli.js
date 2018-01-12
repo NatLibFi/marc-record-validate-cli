@@ -81,10 +81,10 @@ if (argv.x) {
   console.log(`Validating records from file ${file}.`);
   fileFix(file)
     .then(res => {
-      logger.info(res);
+      logger.info(`action: fileFix, inputfile: ${argv.x}, outputfile: ${res.outputFile}, processed recs: ${res.processedRecs}`);
     })
     .catch(err => {
-      logger.log('error', err);
+      logger.error(err);
     });
 }
 
