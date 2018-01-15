@@ -193,7 +193,7 @@ export async function saveLocally(record, ending='') {
     fs.writeFile(fileName, validatedRecordAsXML, (err) => {
       if (err) reject(err);
       else {
-        resolve(`Saved ${fileName}`);
+        resolve(`${fileName}`);
       }
     });
   });

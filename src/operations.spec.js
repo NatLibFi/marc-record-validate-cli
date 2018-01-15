@@ -99,8 +99,7 @@ describe('formatResults', () => {
     const validationReport = JSON.parse(fs.readFileSync('./data/validationReport.json'));
     let formatted = formatResults(validationReport);
     expect(formatResults(validationReport)).to.be.a('string');
-  })
-
+  });
 });
 
 describe('fileFix', async () => {

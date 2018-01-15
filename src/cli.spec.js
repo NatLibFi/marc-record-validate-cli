@@ -1,5 +1,5 @@
 import chai, { expect } from 'chai';
-import Record from 'marc-record-js';
+// import Record from 'marc-record-js';
 import chaiAsPromised from 'chai-as-promised';
 import { fix, show, checkEnvVars, isWithinTimeinterval } from '../src/cli.js';
 

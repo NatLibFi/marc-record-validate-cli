@@ -115,7 +115,7 @@ if (argv.s) {
   show(argv.s)
     .then(rec => console.log(rec))
     .catch(err => {
-      logging.log({
+      logger.log({
         level: 'error',
         message: err
       });
@@ -140,7 +140,7 @@ if (argv.v || argv.l) {
     }
   }).catch(err => {
     console.log(err);
-    logger.error(JSON.stringify(err))
+    logger.error(JSON.stringify(err));
   });
 } else if (argv.f) {
   checkEnvVars(true);
@@ -148,9 +148,7 @@ if (argv.v || argv.l) {
   fix(id)
     .then(res => afterSuccessfulUpdate(res))
     .catch(err => {
-      // const errs = _.map(err.errors, 'message').join('\n');
-      console.log(`Updating record ${id} failed: '${err}'`);
-      logger.log('error', errs);
+      logger.error(`Updating record ${id} failed: '${err}'`);
     });
 } else if (argv.m) {
   checkEnvVars(true);
