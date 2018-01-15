@@ -216,7 +216,6 @@ async function fixAll(idChunks, total) {
   if (!isWithinTimeinterval(argv.t)) {
     const date = new Date();
     const currTime = `${date.getHours()}:${date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()}`;
-    console.log(new Date().toLocaleString())
     logger.info(`Current time (${currTime}) is not within the time limits (${argv.t}) to run. Sleeping for 20 minutes...`);
     await sleep(60000 * 20); // Sleep for 20 minutes and recur
     fixAll(idChunks, total);
@@ -246,7 +245,7 @@ async function fixAll(idChunks, total) {
         });
       }
     }));
-    console.log(`${done}/${total} (${Math.round(done / total * 100)} %) records processed.`);
+    logger.info(`${done}/${total} (${Math.round(done / total * 100)} %) records processed.`);
     fixAll(tail, total);
   }
 
