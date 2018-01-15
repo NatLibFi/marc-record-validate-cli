@@ -168,6 +168,7 @@ if (argv.v || argv.l) {
 
   const chunk = argv.c || 5;
 
+  logger.info(`Read ${ids.length} record ids from file ${argv.m}, fixing them in chunks of ${chunk}.`);
   let idSets = _.chunk(ids, chunk);
 
   fixAll(idSets, ids.length);
