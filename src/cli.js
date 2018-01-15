@@ -11,7 +11,11 @@ import { show, validateRecord, fix, fileFix, saveLocally, isValid, formatResults
 const logger = new winston.Logger({
   transports: [
     new (winston.transports.Console)(),
-    new (winston.transports.File)({ filename: 'logfile.log', json: false })
+    new (winston.transports.File)({
+      timestamp: () => new Date().toLocaleString(),
+      filename: 'logfile.log',
+      json: false
+    })
   ]
 });
 
@@ -212,6 +216,7 @@ async function fixAll(idChunks, total) {
   if (!isWithinTimeinterval(argv.t)) {
     const date = new Date();
     const currTime = `${date.getHours()}:${date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()}`;
+    console.log(new Date().toLocaleString())
     logger.info(`Current time (${currTime}) is not within the time limits (${argv.t}) to run. Sleeping for 20 minutes...`);
     await sleep(60000 * 20); // Sleep for 20 minutes and recur
     fixAll(idChunks, total);
