@@ -3,13 +3,15 @@
  * functions should be as pure as possible - no output printing.
  */
 import 'babel-polyfill';
+import * as _ from 'lodash';
+import request from 'request';
+import rp from 'request-promise-native';
 import Record from 'marc-record-js';
-import path from 'path';
 import Serializers from 'marc-record-serializers';
+import path from 'path';
 import fs from 'fs';
 // import * as _ from 'lodash';
 import { validate, client } from './config';
-
 
 /**
  * Check whether a record id is valid.

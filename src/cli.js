@@ -3,7 +3,15 @@ import * as yargs from 'yargs';
 import * as _ from 'lodash';
 import * as winston from 'winston';
 import fs from 'fs';
-import { show, validateRecord, fix, fileFix, saveLocally, isValid, formatResults } from './operations.js';
+import exitHook from 'exit-hook';
+import { show,
+  validateRecord,
+  fix,
+  fileFix,
+  saveLocally,
+  isValid,
+  formatResults,
+  revertToPrevious } from './operations.js';
 
 /**
  * Initialize logging
@@ -51,6 +59,8 @@ const argv = yargs
     describe: 'OPTIONAL: The timeframe in a day in which long-running fixmultiple jobs are run (e.g. 17-06)',
     type: 'string'
   })
+  .alias('u', 'undo')
+  .describe('u', 'Revert a single record to its previous version')
   .argv;
 
 function afterSuccessfulUpdate(res) {
@@ -74,7 +84,7 @@ function afterSuccessfulUpdate(res) {
     .map(validator => validator.name)
     .join(', ');
   let action = argv.m ? 'fixmultiple' : 'fix';
-  logger.info(`id: ${id}, action: ${action},${argv.m ? ' chunksize: ' + argv.c + ',' : ''} active validators: ${activeValidators}`);
+  logger.info(`id: ${id}, action: ${action}${argv.m ? ' (chunksize: ' + argv.c + '),' : ''} active validators: ${activeValidators}`);
 }
 
 /**
@@ -128,10 +138,10 @@ if (argv.v || argv.l) {
   const id = argv.v ? argv.v : argv.l;
   console.log(`Validating record ${id}`);
   validateRecord(id).then(res => {
-    console.log(formatResults(res.results));
-    if (res.revalidationResults !== '') {
+    const revalidation = res.revalidationResults.validators.filter(result => result.validate.length > 0);
+    if (revalidation.length > 0) {
       console.log('The record was revalidated after changes, the validator output was:');
-      console.log(formatResults(res.revalidationResults));
+      console.log(formatResults(res.revalidationResults))
     }
     console.log('Validated record:');
     console.log(res.validatedRecord.toString());
@@ -172,6 +182,8 @@ if (argv.v || argv.l) {
   let idSets = _.chunk(ids, chunk);
 
   fixAll(idSets, ids.length);
+} else if (argv.u) {
+  console.log("TODO");
 }
 
 export function sleep(ms) {
@@ -247,5 +259,4 @@ async function fixAll(idChunks, total) {
     logger.info(`${done}/${total} (${Math.round(done / total * 100)} %) records processed.`);
     fixAll(tail, total);
   }
-
 }

@@ -36,6 +36,7 @@
     "@natlibfi/marc-record-validators-melinda": "git+https://github.com/NatLibFi/marc-record-validators-melinda.git#development",
     "@natlibfi/melinda-api-client": "git+https://github.com/NatLibFi/melinda-api-client.git",
     "babel-polyfill": "^6.26.0",
+    "exit-hook": "^1.1.1",
     "lodash": "^4.17.4",
     "marc-record-js": "git+https://github.com/petuomin/marc-record-js.git",
     "marc-record-serializers": "git+https://github.com/petuomin/marc-record-serializers.git",

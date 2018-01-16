@@ -17,7 +17,7 @@ const validate = validatorFactory([
    * in the RDA-conversion
    * options: none
    */
-  // require('@natlibfi/marc-record-validators-melinda/lib/validators/function-terms'),
+  require('@natlibfi/marc-record-validators-melinda/lib/validators/function-terms'),
   /**
    * validator name: identical-field-eliminator
    * action: Deduplicate identical fields in a record.
