@@ -3,7 +3,7 @@ import * as yargs from 'yargs';
 import * as _ from 'lodash';
 import * as winston from 'winston';
 import fs from 'fs';
-import exitHook from 'exit-hook';
+import { saveToDb } from './db.js';
 import { show,
   validateRecord,
   fix,
@@ -63,7 +63,7 @@ const argv = yargs
   .describe('u', 'Revert a single record to its previous version')
   .argv;
 
-function afterSuccessfulUpdate(res) {
+export async function afterSuccessfulUpdate(res) {
   const { originalRecord, updateResponse, validatedRecord, results } = res;
   const message = _.map(updateResponse.messages, 'message').join('\n');
   const id = originalRecord.get('001')[0].value;
@@ -75,16 +75,18 @@ function afterSuccessfulUpdate(res) {
 
   ${formatResults(results)}
   `);
-  saveLocally(originalRecord, '_original').then(res => console.log(res));
-  if (!originalRecord.equalsTo(validatedRecord)) {
-    saveLocally(validatedRecord, '_validated').then(res => console.log(res));
-  }
+  // saveLocally(originalRecord, '_original').then(res => console.log(res));
+  // if (!originalRecord.equalsTo(validatedRecord)) {
+  //   saveLocally(validatedRecord, '_validated').then(res => console.log(res));
+  // }
   const activeValidators = res.results.validators
     .filter(validator => validator.validate.length > 0)
     .map(validator => validator.name)
     .join(', ');
   let action = argv.m ? 'fixmultiple' : 'fix';
   logger.info(`id: ${id}, action: ${action}${argv.m ? ' (chunksize: ' + argv.c + '),' : ''} active validators: ${activeValidators}`);
+  // const dbResults = await saveToDb(res);
+  // console.log(dbResults);
 }
 
 /**
@@ -158,7 +160,7 @@ if (argv.v || argv.l) {
   fix(id)
     .then(res => afterSuccessfulUpdate(res))
     .catch(err => {
-      logger.error(`Updating record ${id} failed: '${err.errors.map(e => e.message).join(', ')}'`);
+      logger.error(`Updating record ${id} failed: '${err.errors ? err.errors.map(e => e.message).join(', ') : err}'`);
     });
 } else if (argv.m) {
   checkEnvVars(true);
@@ -181,7 +183,7 @@ if (argv.v || argv.l) {
   logger.info(`Read ${ids.length} record ids from file ${argv.m}, fixing them in chunks of ${chunk}.`);
   let idSets = _.chunk(ids, chunk);
 
-  fixAll(idSets, ids.length);
+  fixAll(idSets, ids.length, new Date().toLocaleString());
 } else if (argv.u) {
   console.log("TODO");
 }
@@ -222,24 +224,22 @@ export function isWithinTimeinterval(range, date = new Date()) {
  * @param {number} - total - The total number of records to process.
  * @returns {Promise} - Resolves with true when everything is processed. Logs errors in the process.
  */
-async function fixAll(idChunks, total) {
+export async function fixAll(idChunks, total, batchId) {
 
   if (!isWithinTimeinterval(argv.t)) {
     const date = new Date();
     const currTime = `${date.getHours()}:${date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()}`;
     logger.info(`Current time (${currTime}) is not within the time limits (${argv.t}) to run. Sleeping for 20 minutes...`);
     await sleep(60000 * 20); // Sleep for 20 minutes and recur
-    fixAll(idChunks, total);
+    fixAll(idChunks, total, batchId);
   } else {
+
     const [head, ...tail] = idChunks;
 
     if (!head) {
-      console.log('Done.');
-      return true;
+      logger.info('Done.');
+      return 'Done';
     }
-
-    const left = head.length * tail.length;
-    const done = total - left;
 
     const results = await Promise.all(head.map(async (id) => {
       try {
@@ -247,6 +247,7 @@ async function fixAll(idChunks, total) {
         res.results['id'] = id;
         // console.log(formatResults(res))
         afterSuccessfulUpdate(res);
+        return res;
       } catch (err) {
         const errorMessage = `Updating record ${id} failed: '${err}'`;
         console.log(errorMessage);
@@ -256,7 +257,12 @@ async function fixAll(idChunks, total) {
         });
       }
     }));
+
+    saveToDb(results, batchId);
+
+    const done = total - head.length * tail.length;
+
     logger.info(`${done}/${total} (${Math.round(done / total * 100)} %) records processed.`);
-    fixAll(tail, total);
+    fixAll(tail, total, batchId);
   }
 }

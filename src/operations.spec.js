@@ -4,7 +4,7 @@ import nock from 'nock';
 import fs from 'fs';
 import Serializers from 'marc-record-serializers';
 import chaiAsPromised from 'chai-as-promised';
-import { show, validateRecord, fileFix, saveLocally, formatResults, outputFileName } from '../src/operations.js';
+import { show, validateRecord, fileFix, saveLocally, formatResults, outputFileName, generateBatchId } from '../src/operations.js';
 import chaiXml from 'chai-xml';
 
 chai.use(chaiAsPromised);

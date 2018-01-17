@@ -41,6 +41,7 @@
     "marc-record-js": "git+https://github.com/petuomin/marc-record-js.git",
     "marc-record-serializers": "git+https://github.com/petuomin/marc-record-serializers.git",
     "marc-record-validate": "^1.0.2",
+    "mongodb": "^3.0.1",
     "request": "^2.83.0",
     "request-promise": "^4.2.2",
     "request-promise-native": "^1.0.5",
