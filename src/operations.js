@@ -106,7 +106,7 @@ export async function fix(id) {
     const { originalRecord, validatedRecord } = validationRes;
     let response = "";
     if (originalRecord.toString() !== validatedRecord.toString()) {
-      response = await client.updateRecord(validatedRecord);
+      response = await client.updateRecord(validatedRecord, {'bypass_low_validation': true});
     }
     validationRes['updateResponse'] = response;
     return validationRes;

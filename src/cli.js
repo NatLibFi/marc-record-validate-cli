@@ -158,7 +158,7 @@ if (argv.v || argv.l) {
   fix(id)
     .then(res => afterSuccessfulUpdate(res))
     .catch(err => {
-      logger.error(`Updating record ${id} failed: '${err}'`);
+      logger.error(`Updating record ${id} failed: '${err.errors.map(e => e.message).join(', ')}'`);
     });
 } else if (argv.m) {
   checkEnvVars(true);
