@@ -3,7 +3,7 @@ import * as yargs from 'yargs';
 import * as _ from 'lodash';
 import * as winston from 'winston';
 import fs from 'fs';
-import { saveToDb, revertToPrevious } from './db.js';
+import { saveToDb, revertToPrevious, wipeDatabase } from './db.js';
 import { show,
   validateRecord,
   fix,
@@ -63,6 +63,8 @@ const argv = yargs
   })
   .alias('u', 'undo')
   .describe('u', 'Revert a single record to its previous version')
+  .alias('r', 'reset')
+  .describe('r', 'Reset the local database, wipe all backup data.')
   .argv;
 
 export async function afterSuccessfulUpdate(res, batchId = '') {
@@ -139,7 +141,7 @@ if (argv.v || argv.l) {
     const revalidation = res.revalidationResults.validators.filter(result => result.validate.length > 0);
     if (revalidation.length > 0) {
       console.log('The record was revalidated after changes, the validator output was:');
-      console.log(formatResults(res.revalidationResults))
+      console.log(formatResults(res.revalidationResults));
     }
     console.log('Validated record:');
     console.log(res.validatedRecord.toString());
@@ -200,8 +202,19 @@ if (argv.v || argv.l) {
       if (errors) {
         logger.error(`rollback errors: ${errors}`);
       }
-    })
+    });
   });
+} else if (argv.r) {
+  wipeDatabase()
+    .then(res => {
+      if (res) {
+        logger.info('Success.');
+      }
+      process.exit();
+    })
+    .catch(err => {
+      logger.error(err);
+    });
 }
 
 /**

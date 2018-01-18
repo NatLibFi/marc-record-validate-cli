@@ -98,7 +98,7 @@ describe('formatResults', () => {
   it('Should return a string with correct input', () => {
     const validationReport = JSON.parse(fs.readFileSync('./data/validationReport.json'));
     let formatted = formatResults(validationReport);
-    expect(formatResults(validationReport)).to.be.a('string');
+    expect(formatted).to.be.a('string');
   });
 });
 
@@ -109,7 +109,7 @@ describe('fileFix', async () => {
   });
   it('Should be able to fix local files in proper format', async () => {
     expect('kukka').to.not.equal('kukkax');
-    let { outputFile, processedRecs } = await fileFix('./data/testdata.mrc');
+    let { outputFile } = await fileFix('./data/testdata.mrc');
     const validated1 = fs.readFileSync(`./files/${outputFile}`, 'utf-8');
     expect(validated1).xml.be.valid();
     let result = await fileFix('./data/testdata.seq');
@@ -142,8 +142,8 @@ describe('outputFileName', () => {
 describe('generateBatchId', () => {
   it('Should generate a sane batch id', () => {
     const id = generateBatchId();
-    const id2 = generateBatchId(new Date("2000-01-01"));
-    const id3 = generateBatchId(new Date("2000-01-01"));
+    const id2 = generateBatchId(new Date('2000-01-01'));
+    const id3 = generateBatchId(new Date('2000-01-01'));
     const nos = [id, id2, id3].map(i => /\d/.test(i));
     expect(id).to.be.a('string');
     expect(id).to.not.equal(id2);
