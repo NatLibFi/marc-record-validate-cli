@@ -4,7 +4,7 @@ import nock from 'nock';
 import fs from 'fs';
 import Serializers from 'marc-record-serializers';
 import chaiAsPromised from 'chai-as-promised';
-import { show, validateRecord, fileFix, saveLocally, formatResults, outputFileName, generateBatchId } from '../src/operations.js';
+import { show, validateRecord, fileFix, saveLocally, formatResults, outputFileName, generateBatchId, isWithinTimeinterval } from '../src/operations.js';
 import chaiXml from 'chai-xml';
 
 chai.use(chaiAsPromised);
@@ -148,6 +148,33 @@ describe('generateBatchId', () => {
     expect(id).to.be.a('string');
     expect(id).to.not.equal(id2);
     expect(id3).to.equal(id2);
-    expect(nos).to.not.include(true);
+    expect(nos).to.include(true);
+  });
+});
+
+describe('isWithinTimeinterval', () => {
+  it('Should throw an error because the time range is not defined', () => {
+    expect(() => isWithinTimeinterval(new Date(2018, 1, 1, 4, 0, 0))).to.throw(Error, /^Timerange should be in/);
+  });
+  it('Should throw an error because the time range invalid', () => {
+    expect(() => isWithinTimeinterval('99-14', new Date(2018, 1, 1, 4, 0, 0))).to.throw(Error, /^Invalid time interval/);
+  });
+  it('Should return true when the date is within the interval', () => {
+    expect(isWithinTimeinterval('19-06', new Date(2018, 1, 1, 4, 0, 0))).to.be.true;
+    expect(isWithinTimeinterval('01-23', new Date(2018, 1, 1, 1, 0, 0))).to.be.true;
+    expect(isWithinTimeinterval('23-00', new Date(2018, 1, 1, 23, 0, 0))).to.be.true;
+  });
+  it('Should return false when the date is not within the interval', () => {
+    expect(isWithinTimeinterval('23-00', new Date(2018, 1, 1, 0, 0, 0))).to.be.false;
+    expect(isWithinTimeinterval('19-06', new Date(2018, 1, 1, 6, 0, 0))).to.be.false;
+    expect(isWithinTimeinterval('19-06', new Date(2018, 1, 1, 10, 0, 0))).to.be.false;
+    expect(isWithinTimeinterval('04-06', new Date(2018, 1, 1, 10, 0, 0))).to.be.false;
+    expect(isWithinTimeinterval('01-23', new Date(2018, 1, 1, 0, 0, 0))).to.be.false;
+  });
+
+  it('Should return true when the date is on weekend', () => {
+    expect(isWithinTimeinterval('11-12', new Date(2018, 1, 3, 1, 0, 0))).to.be.true;
+    expect(isWithinTimeinterval('11-12', new Date(2018, 1, 4, 1, 0, 0))).to.be.true;
+    expect(isWithinTimeinterval('11-12', new Date(2018, 1, 5, 1, 0, 0))).to.be.false;
   });
 });

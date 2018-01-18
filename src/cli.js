@@ -3,7 +3,7 @@ import * as yargs from 'yargs';
 import * as _ from 'lodash';
 import * as winston from 'winston';
 import fs from 'fs';
-import { saveToDb } from './db.js';
+import { saveToDb, revertToPrevious } from './db.js';
 import { show,
   validateRecord,
   fix,
@@ -12,12 +12,13 @@ import { show,
   isValid,
   formatResults,
   generateBatchId,
-  revertToPrevious } from './operations.js';
+  isWithinTimeinterval,
+  sleep } from './operations.js';
 
 /**
  * Initialize logging
  */
-const logger = new winston.Logger({
+export const logger = new winston.Logger({
   transports: [
     new (winston.transports.Console)(),
     new (winston.transports.File)({
@@ -76,18 +77,12 @@ export async function afterSuccessfulUpdate(res, batchId = '') {
 
   ${formatResults(results)}
   `);
-  // saveLocally(originalRecord, '_original').then(res => console.log(res));
-  // if (!originalRecord.equalsTo(validatedRecord)) {
-  //   saveLocally(validatedRecord, '_validated').then(res => console.log(res));
-  // }
   const activeValidators = res.results.validators
     .filter(validator => validator.validate.length > 0)
     .map(validator => validator.name)
     .join(', ');
   let action = argv.m ? 'fixmultiple' : 'fix';
   logger.info(`id: ${id}, action: ${action}${argv.m ? ' (chunksize: ' + argv.c + ', batchId: ' + batchId + '),' : ''} active validators: ${activeValidators}`);
-  // const dbResults = await saveToDb(res);
-  // console.log(dbResults);
 }
 
 /**
@@ -182,41 +177,31 @@ if (argv.v || argv.l) {
   const chunk = argv.c || 5;
 
   logger.info(`Read ${ids.length} record ids from file ${argv.m}, fixing them in chunks of ${chunk}.`);
-  let idSets = _.chunk(ids, chunk);
 
-  fixAll(idSets, ids.length, generateBatchId());
+  const idSets = _.chunk(ids, chunk);
+  const batchId = generateBatchId();
+
+  fixAll(idSets, ids.length, batchId);
 } else if (argv.u) {
-  console.log("TODO");
-}
-
-export function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
- * Check whether the current moment is within the 'timeinterval' range for fixmultiple
- * @param {string} - range
- * @param {Date} - date
- * @returns {boolean}
- */
-export function isWithinTimeinterval(range, date = new Date()) {
-
-  if (!range || [0,6].includes(date.getDay())) { // The timerange isn't adhered to on weekends.
-    return true;
-  }
-
-  if (range.length !== 5) {
-    throw new Error('Timerange should be in format "11-02"');
-  }
-
-  const [start, end] = range.split('-').map(n => Number(n));
-
-  if (isNaN(start) || isNaN(end) || start < 0 || start > 23 || end < 0 || end > 23) {
-    throw new Error(`Invalid time interval: ${range}, it should be in format like: '18-06'.`);
-  }
-
-  const curr = date.getHours();
-  return start < end ? (curr >= start && curr < end) : (curr >= start || curr < end);
+  logger.info(`Performing a rollback from batch with id '${argv.u}'...`);
+  revertToPrevious(argv.u).then(results => {
+    results.forEach(res => {
+      const messages = res.messages.map(m => m.message).join(', ');
+      const triggers = res.triggers.map(m => m.message).join(', ');
+      const warnings = res.warnings.map(m => m.message).join(', ');
+      const errors = res.errors.map(m => m.message).join(', ');
+      logger.info(`rollback messages: ${messages}`);
+      if (triggers) {
+        logger.info(`rollback triggers: ${triggers}`);
+      }
+      if (warnings) {
+        logger.warn(`rollback warnings: ${warnings}`);
+      }
+      if (errors) {
+        logger.error(`rollback errors: ${errors}`);
+      }
+    })
+  });
 }
 
 /**
@@ -246,20 +231,19 @@ export async function fixAll(idChunks, total, batchId) {
       try {
         let res = await fix(id);
         res.results['id'] = id;
-        // console.log(formatResults(res))
         afterSuccessfulUpdate(res, batchId);
         return res;
       } catch (err) {
         const errorMessage = `Updating record ${id} failed: '${err}'`;
-        console.log(errorMessage);
-        logger.log({
-          level: 'error',
-          message: errorMessage
-        });
+        logger.error(errorMessage);
       }
     }));
 
-    saveToDb(results, batchId);
+    saveToDb(results, batchId)
+      .then(dbResults => {
+        logger.info(`Saved ${dbResults.insertedCount} records to database: ${Object.values(dbResults.insertedIds).join(', ')} with batchId '${batchId}.'`);
+      })
+      .catch(err => logger.error(err));
 
     const done = total - head.length * tail.length;
 

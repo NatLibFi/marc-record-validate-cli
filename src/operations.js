@@ -5,13 +5,11 @@
 import 'babel-polyfill';
 import * as _ from 'lodash';
 import request from 'request';
-import Hashids from 'hashids';
 import rp from 'request-promise-native';
 import Record from 'marc-record-js';
 import Serializers from 'marc-record-serializers';
 import path from 'path';
 import fs from 'fs';
-// import * as _ from 'lodash';
 import { validate, client } from './config';
 
 /**
@@ -204,8 +202,51 @@ export async function saveLocally(record, ending='') {
 
 /**
  * Generate a unique id for the batch job from js Date object.
+ * @param {Date} - A date object (optional)
+ * @return {string}
  */
 export function generateBatchId(date = new Date()) {
-  const hashids = new Hashids('Meri Kreikan, Kreikan meri', 8, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
-  return hashids.encode(date.getTime());
+  return `batch${date.getTime()}`;
+}
+
+export function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Check whether the current moment is within the 'timeinterval' range for fixmultiple
+ * @param {string} - range
+ * @param {Date} - date
+ * @returns {boolean}
+ */
+export function isWithinTimeinterval(range, date = new Date()) {
+
+  if (!range || [0,6].includes(date.getDay())) { // The timerange isn't adhered to on weekends.
+    return true;
+  }
+
+  if (range.length !== 5) {
+    throw new Error('Timerange should be in format "11-02"');
+  }
+
+  const [start, end] = range.split('-').map(n => Number(n));
+
+  if (isNaN(start) || isNaN(end) || start < 0 || start > 23 || end < 0 || end > 23) {
+    throw new Error(`Invalid time interval: ${range}, it should be in format like: '18-06'.`);
+  }
+
+  const curr = date.getHours();
+  return start < end ? (curr >= start && curr < end) : (curr >= start || curr < end);
+}
+
+/**
+ * Takes the current and previous version of a record.
+ * @param {Record} - oldRecord
+ * @param {Record} - newRecord
+ * @returns {Record}
+ */
+export function processRecordForRollback(oldRecord, newRecord) {
+  const catFields = newRecord.fields.filter(field => field.tag === "CAT");
+  oldRecord.appendField(catFields.pop());
+  return oldRecord;
 }
