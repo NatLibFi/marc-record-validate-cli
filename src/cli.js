@@ -11,6 +11,7 @@ import { show,
   saveLocally,
   isValid,
   formatResults,
+  generateBatchId,
   revertToPrevious } from './operations.js';
 
 /**
@@ -63,7 +64,7 @@ const argv = yargs
   .describe('u', 'Revert a single record to its previous version')
   .argv;
 
-export async function afterSuccessfulUpdate(res) {
+export async function afterSuccessfulUpdate(res, batchId = '') {
   const { originalRecord, updateResponse, validatedRecord, results } = res;
   const message = _.map(updateResponse.messages, 'message').join('\n');
   const id = originalRecord.get('001')[0].value;
@@ -84,7 +85,7 @@ export async function afterSuccessfulUpdate(res) {
     .map(validator => validator.name)
     .join(', ');
   let action = argv.m ? 'fixmultiple' : 'fix';
-  logger.info(`id: ${id}, action: ${action}${argv.m ? ' (chunksize: ' + argv.c + '),' : ''} active validators: ${activeValidators}`);
+  logger.info(`id: ${id}, action: ${action}${argv.m ? ' (chunksize: ' + argv.c + ', batchId: ' + batchId + '),' : ''} active validators: ${activeValidators}`);
   // const dbResults = await saveToDb(res);
   // console.log(dbResults);
 }
@@ -183,7 +184,7 @@ if (argv.v || argv.l) {
   logger.info(`Read ${ids.length} record ids from file ${argv.m}, fixing them in chunks of ${chunk}.`);
   let idSets = _.chunk(ids, chunk);
 
-  fixAll(idSets, ids.length, new Date().toLocaleString());
+  fixAll(idSets, ids.length, generateBatchId());
 } else if (argv.u) {
   console.log("TODO");
 }
@@ -246,7 +247,7 @@ export async function fixAll(idChunks, total, batchId) {
         let res = await fix(id);
         res.results['id'] = id;
         // console.log(formatResults(res))
-        afterSuccessfulUpdate(res);
+        afterSuccessfulUpdate(res, batchId);
         return res;
       } catch (err) {
         const errorMessage = `Updating record ${id} failed: '${err}'`;

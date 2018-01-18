@@ -138,3 +138,16 @@ describe('outputFileName', () => {
     expect(newFileName).to.have.string('files/123_testing.xml');
   });
 });
+
+describe('generateBatchId', () => {
+  it('Should generate a sane batch id', () => {
+    const id = generateBatchId();
+    const id2 = generateBatchId(new Date("2000-01-01"));
+    const id3 = generateBatchId(new Date("2000-01-01"));
+    const nos = [id, id2, id3].map(i => /\d/.test(i));
+    expect(id).to.be.a('string');
+    expect(id).to.not.equal(id2);
+    expect(id3).to.equal(id2);
+    expect(nos).to.not.include(true);
+  });
+});

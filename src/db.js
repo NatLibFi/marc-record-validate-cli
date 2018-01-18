@@ -8,7 +8,7 @@ export async function saveToDb(res, batchId) {
   try {
     const entry = res.map(r => {
         return {
-          id: r.id,
+          _id: r.id,
           originalRecord: r.originalRecord.toString(),
           validatedRecord: r.validatedRecord.toString(),
           results: r.results,
@@ -17,10 +17,7 @@ export async function saveToDb(res, batchId) {
     });
     const database = await MongoClient.connect(mongoUrl);
     const validateDb = await database.db('validate');
-    const result = await validateDb.collection('test')
-      .update({_id: batchId},
-        {$push: { data: { $each: entry }}},
-        {upsert: true});
+    const result = await validateDb.collection(batchId).insertMany(entry);
     database.close();
     return result;
   } catch (err) {

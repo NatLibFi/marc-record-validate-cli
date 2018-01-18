@@ -5,6 +5,7 @@
 import 'babel-polyfill';
 import * as _ from 'lodash';
 import request from 'request';
+import Hashids from 'hashids';
 import rp from 'request-promise-native';
 import Record from 'marc-record-js';
 import Serializers from 'marc-record-serializers';
@@ -199,4 +200,12 @@ export async function saveLocally(record, ending='') {
       }
     });
   });
+}
+
+/**
+ * Generate a unique id for the batch job from js Date object.
+ */
+export function generateBatchId(date = new Date()) {
+  const hashids = new Hashids('Meri Kreikan, Kreikan meri', 8, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
+  return hashids.encode(date.getTime());
 }
