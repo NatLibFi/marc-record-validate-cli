@@ -3,15 +3,29 @@ import * as yargs from 'yargs';
 import * as _ from 'lodash';
 import * as winston from 'winston';
 import fs from 'fs';
-import { show, validateRecord, fix, fileFix, saveLocally, isValid, formatResults } from './operations.js';
+import { saveToDb, revertToPrevious } from './db.js';
+import { show,
+  validateRecord,
+  fix,
+  fileFix,
+  saveLocally,
+  isValid,
+  formatResults,
+  generateBatchId,
+  isWithinTimeinterval,
+  sleep } from './operations.js';
 
 /**
  * Initialize logging
  */
-const logger = new winston.Logger({
+export const logger = new winston.Logger({
   transports: [
     new (winston.transports.Console)(),
-    new (winston.transports.File)({ filename: 'logfile.log' })
+    new (winston.transports.File)({
+      timestamp: () => new Date().toLocaleString(),
+      filename: 'logfile.log',
+      json: false
+    })
   ]
 });
 
@@ -22,6 +36,8 @@ const argv = yargs
   .usage('Usage: node ./build/cli.js <options>')
   .help('h')
   .alias('h', 'help')
+  .alias('s', 'show')
+  .describe('s', 'Show a single record')
   .alias('v', 'validate')
   .describe('v', 'Validate a single record')
   .alias('f', 'fix')
@@ -32,13 +48,24 @@ const argv = yargs
   .describe('x', 'Validate and fix a set of records from local file, save results locally')
   .alias('m', 'fixmultiple')
   .describe('m', 'Read record ids from file, fix all')
-  .alias('c', 'chunksize')
-  .describe('c', 'The chunksize for processing ids')
-  .alias('s', 'show')
-  .describe('s', 'Show a single record')
+  .option('c', {
+    alias: 'chunksize',
+    demandOption: false,
+    default: 5,
+    describe: 'OPTIONAL: The size of the chunks to process with fixmultiple',
+    type: 'number'
+  })
+  .option('t', {
+    alias: 'timeinterval',
+    demandOption: false,
+    describe: 'OPTIONAL: The timeframe in a day in which long-running fixmultiple jobs are run (e.g. 17-06)',
+    type: 'string'
+  })
+  .alias('u', 'undo')
+  .describe('u', 'Revert a single record to its previous version')
   .argv;
 
-function afterSuccessfulUpdate(res) {
+export async function afterSuccessfulUpdate(res, batchId = '') {
   const { originalRecord, updateResponse, validatedRecord, results } = res;
   const message = _.map(updateResponse.messages, 'message').join('\n');
   const id = originalRecord.get('001')[0].value;
@@ -50,14 +77,12 @@ function afterSuccessfulUpdate(res) {
 
   ${formatResults(results)}
   `);
-  saveLocally(originalRecord, '_original').then(res => console.log(res));
-  if (results !== "") {
-    /**
-     * If the API results from the update operation is an empty string, the record
-     * has not been updated.
-     */
-    saveLocally(validatedRecord, '_validated').then(res => console.log(res));
-  }
+  const activeValidators = res.results.validators
+    .filter(validator => validator.validate.length > 0)
+    .map(validator => validator.name)
+    .join(', ');
+  let action = argv.m ? 'fixmultiple' : 'fix';
+  logger.info(`id: ${id}, action: ${action}${argv.m ? ' (chunksize: ' + argv.c + ', batchId: ' + batchId + '),' : ''} active validators: ${activeValidators}`);
 }
 
 /**
@@ -68,10 +93,10 @@ if (argv.x) {
   console.log(`Validating records from file ${file}.`);
   fileFix(file)
     .then(res => {
-      logger.info(res);
+      logger.info(`action: fileFix, inputfile: ${argv.x}, outputfile: ${res.outputFile}, processed recs: ${res.processedRecs}`);
     })
     .catch(err => {
-      logger.log('error', err);
+      logger.error(err);
     });
 }
 
@@ -80,7 +105,7 @@ if (argv.x) {
  * @param {boolean} - creds
  * @returns {boolean}
  */
-function checkEnvVars(creds = 'false') {
+export function checkEnvVars(creds = 'false') {
 
   if (!process.env.VALIDATE_API) {
     throw new Error('The environment variable VALIDATE_API is not set.');
@@ -98,7 +123,7 @@ if (argv.s) {
   show(argv.s)
     .then(rec => console.log(rec))
     .catch(err => {
-      logging.log({
+      logger.log({
         level: 'error',
         message: err
       });
@@ -111,10 +136,10 @@ if (argv.v || argv.l) {
   const id = argv.v ? argv.v : argv.l;
   console.log(`Validating record ${id}`);
   validateRecord(id).then(res => {
-    console.log(formatResults(res.results));
-    if (res.revalidationResults !== '') {
+    const revalidation = res.revalidationResults.validators.filter(result => result.validate.length > 0);
+    if (revalidation.length > 0) {
       console.log('The record was revalidated after changes, the validator output was:');
-      console.log(formatResults(res.revalidationResults));
+      console.log(formatResults(res.revalidationResults))
     }
     console.log('Validated record:');
     console.log(res.validatedRecord.toString());
@@ -123,6 +148,7 @@ if (argv.v || argv.l) {
     }
   }).catch(err => {
     console.log(err);
+    logger.error(JSON.stringify(err));
   });
 } else if (argv.f) {
   checkEnvVars(true);
@@ -130,10 +156,7 @@ if (argv.v || argv.l) {
   fix(id)
     .then(res => afterSuccessfulUpdate(res))
     .catch(err => {
-      console.log(err);
-      const errs = _.map(err.errors, 'message').join('\n');
-      console.log(`Updating record ${id} failed: '${errs}'`);
-      logger.log('error', errs);
+      logger.error(`Updating record ${id} failed: '${err.errors ? err.errors.map(e => e.message).join(', ') : err}'`);
     });
 } else if (argv.m) {
   checkEnvVars(true);
@@ -153,39 +176,78 @@ if (argv.v || argv.l) {
 
   const chunk = argv.c || 5;
 
-  let idSets = _.chunk(ids, chunk);
+  logger.info(`Read ${ids.length} record ids from file ${argv.m}, fixing them in chunks of ${chunk}.`);
 
-  fixAll(idSets);
+  const idSets = _.chunk(ids, chunk);
+  const batchId = generateBatchId();
+
+  fixAll(idSets, ids.length, batchId);
+} else if (argv.u) {
+  logger.info(`Performing a rollback from batch with id '${argv.u}'...`);
+  revertToPrevious(argv.u).then(results => {
+    results.forEach(res => {
+      const messages = res.messages.map(m => m.message).join(', ');
+      const triggers = res.triggers.map(m => m.message).join(', ');
+      const warnings = res.warnings.map(m => m.message).join(', ');
+      const errors = res.errors.map(m => m.message).join(', ');
+      logger.info(`rollback messages: ${messages}`);
+      if (triggers) {
+        logger.info(`rollback triggers: ${triggers}`);
+      }
+      if (warnings) {
+        logger.warn(`rollback warnings: ${warnings}`);
+      }
+      if (errors) {
+        logger.error(`rollback errors: ${errors}`);
+      }
+    })
+  });
 }
 
 /**
  * Fix a batch of records. Calls itself recursively until all chunks are processed.
  * @param {array} - idChunks - A list of lists of ids. E.g. [[1, 2, 3], [4, 5, 6]].
+ * @param {number} - total - The total number of records to process.
  * @returns {Promise} - Resolves with true when everything is processed. Logs errors in the process.
  */
-async function fixAll(idChunks) {
+export async function fixAll(idChunks, total, batchId) {
 
-  const [head, ...tail] = idChunks;
+  if (!isWithinTimeinterval(argv.t)) {
+    const date = new Date();
+    const currTime = `${date.getHours()}:${date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()}`;
+    logger.info(`Current time (${currTime}) is not within the time limits (${argv.t}) to run. Sleeping for 20 minutes...`);
+    await sleep(60000 * 20); // Sleep for 20 minutes and recur
+    fixAll(idChunks, total, batchId);
+  } else {
 
-  if (!head) {
-    console.log('Done.');
-    return true;
-  }
+    const [head, ...tail] = idChunks;
 
-  const results = await Promise.all(head.map(async (id) => {
-    try {
-      let res = await fix(id);
-      logger.log('info', res.results);
-      afterSuccessfulUpdate(res);
-    } catch (err) {
-      const errorMessage = `Updating record ${id} failed: '${err}'`;
-      console.log(errorMessage);
-      logger.log({
-        level: 'error',
-        message: errorMessage
-      });
+    if (!head) {
+      logger.info('Done.');
+      return 'Done';
     }
-  }));
 
-  fixAll(tail);
+    const results = await Promise.all(head.map(async (id) => {
+      try {
+        let res = await fix(id);
+        res.results['id'] = id;
+        afterSuccessfulUpdate(res, batchId);
+        return res;
+      } catch (err) {
+        const errorMessage = `Updating record ${id} failed: '${err}'`;
+        logger.error(errorMessage);
+      }
+    }));
+
+    saveToDb(results, batchId)
+      .then(dbResults => {
+        logger.info(`Saved ${dbResults.insertedCount} records to database: ${Object.values(dbResults.insertedIds).join(', ')} with batchId '${batchId}.'`);
+      })
+      .catch(err => logger.error(err));
+
+    const done = total - head.length * tail.length;
+
+    logger.info(`${done}/${total} (${Math.round(done / total * 100)} %) records processed.`);
+    fixAll(tail, total, batchId);
+  }
 }

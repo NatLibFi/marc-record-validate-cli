@@ -3,13 +3,14 @@
  * functions should be as pure as possible - no output printing.
  */
 import 'babel-polyfill';
+import * as _ from 'lodash';
+import request from 'request';
+import rp from 'request-promise-native';
 import Record from 'marc-record-js';
-import path from 'path';
 import Serializers from 'marc-record-serializers';
+import path from 'path';
 import fs from 'fs';
-// import * as _ from 'lodash';
 import { validate, client } from './config';
-
 
 /**
  * Check whether a record id is valid.
@@ -72,9 +73,6 @@ export async function validateRecord(id) {
   }
   try {
     let record = await client.loadRecord(id);
-    if (!record) {
-      return null;
-    }
     const originalRec = Record.clone(record);
     let results = await validate(record);
     let revalidationResults = '';
@@ -83,6 +81,7 @@ export async function validateRecord(id) {
       revalidationResults = await validate(record);
     }
     return {
+      id: originalRec.get('001')[0].value,
       originalRecord: originalRec,
       results: results,
       revalidationResults: revalidationResults,
@@ -104,9 +103,9 @@ export async function fix(id) {
   try {
     const validationRes = await validateRecord(id);
     const { originalRecord, validatedRecord } = validationRes;
-    let response = "";
+    let response = '';
     if (originalRecord.toString() !== validatedRecord.toString()) {
-      response = await client.updateRecord(validatedRecord);
+      response = await client.updateRecord(validatedRecord, {'bypass_low_validation': true});
     }
     validationRes['updateResponse'] = response;
     return validationRes;
@@ -116,22 +115,12 @@ export async function fix(id) {
 }
 
 /**
- * Return a timestamp
- * @returns {string}
- */
-export function getTimeStamp() {
-  const date = new Date();
-  // will display time in 21:00:00 format
-  return `${date.getFullYear()}${1+date.getMonth()}${date.getDate()}${date.getHours()}${date.getMinutes()}${date.getSeconds()}`;
-}
-
-/**
  * Parse a name for an outputfile.
  * @param {string} - id
  * @param {string} - ending
  * @returns {string}
  */
-function outputFileName(id, ending = '') {
+export function outputFileName(id, ending = '') {
   return path.resolve(`files/${id}${ending}.xml`);
 }
 
@@ -161,7 +150,7 @@ export async function fileFix(file) {
     const suffix = file.slice(-3).toLowerCase();
     let fromFileStream = fs.createReadStream(file);
     fromFileStream.setEncoding('utf8');
-    const outputFile = path.resolve(`${outputDir}/${file.split('/').pop().slice(0,-4)}_validated.xml`);
+    const outputFile = `${outputDir}/${file.split('/').pop().slice(0,-4)}_validated.xml`;
     let reader;
     if (suffix === 'xml') {
       reader = new Serializers.MARCXML.Reader(fromFileStream);
@@ -196,6 +185,11 @@ export async function saveLocally(record, ending='') {
   const id = record.get('001')[0].value;
   const fileName = outputFileName(id, ending);
   const validatedRecordAsXML = Serializers.MARCXML.toMARCXML(record);
+
+  if (!fs.existsSync('./files')) {
+    fs.mkdirSync('./files');
+  }
+
   return new Promise((resolve, reject) => {
     fs.writeFile(fileName, validatedRecordAsXML, (err) => {
       if (err) reject(err);
@@ -204,4 +198,55 @@ export async function saveLocally(record, ending='') {
       }
     });
   });
+}
+
+/**
+ * Generate a unique id for the batch job from js Date object.
+ * @param {Date} - A date object (optional)
+ * @return {string}
+ */
+export function generateBatchId(date = new Date()) {
+  return `batch${date.getTime()}`;
+}
+
+export function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Check whether the current moment is within the 'timeinterval' range for fixmultiple
+ * @param {string} - range
+ * @param {Date} - date
+ * @returns {boolean}
+ */
+export function isWithinTimeinterval(range, date = new Date()) {
+
+  if (!range || [0,6].includes(date.getDay())) { // The timerange isn't adhered to on weekends.
+    return true;
+  }
+
+  if (range.length !== 5) {
+    throw new Error('Timerange should be in format "11-02"');
+  }
+
+  const [start, end] = range.split('-').map(n => Number(n));
+
+  if (isNaN(start) || isNaN(end) || start < 0 || start > 23 || end < 0 || end > 23) {
+    throw new Error(`Invalid time interval: ${range}, it should be in format like: '18-06'.`);
+  }
+
+  const curr = date.getHours();
+  return start < end ? (curr >= start && curr < end) : (curr >= start || curr < end);
+}
+
+/**
+ * Takes the current and previous version of a record.
+ * @param {Record} - oldRecord
+ * @param {Record} - newRecord
+ * @returns {Record}
+ */
+export function processRecordForRollback(oldRecord, newRecord) {
+  const catFields = newRecord.fields.filter(field => field.tag === "CAT");
+  oldRecord.appendField(catFields.pop());
+  return oldRecord;
 }

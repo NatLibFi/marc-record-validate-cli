@@ -36,7 +36,6 @@ const validate = validatorFactory([
  */
 const client = new MelindaClient({
   endpoint: process.env.VALIDATE_API || 'http://libtest.csc.fi:8992/API/latest',
-  //'http://melinda.kansalliskirjasto.fi/API/latest/',
   user: process.env.VALIDATE_USER,
   password: process.env.VALIDATE_PASS
 });
