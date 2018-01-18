@@ -141,7 +141,7 @@ if (argv.v || argv.l) {
     const revalidation = res.revalidationResults.validators.filter(result => result.validate.length > 0);
     if (revalidation.length > 0) {
       console.log('The record was revalidated after changes, the validator output was:');
-      console.log(formatResults(res.revalidationResults))
+      console.log(formatResults(res.revalidationResults));
     }
     console.log('Validated record:');
     console.log(res.validatedRecord.toString());
@@ -202,7 +202,7 @@ if (argv.v || argv.l) {
       if (errors) {
         logger.error(`rollback errors: ${errors}`);
       }
-    })
+    });
   });
 } else if (argv.r) {
   wipeDatabase()

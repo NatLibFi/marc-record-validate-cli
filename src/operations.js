@@ -3,9 +3,6 @@
  * functions should be as pure as possible - no output printing.
  */
 import 'babel-polyfill';
-import * as _ from 'lodash';
-import request from 'request';
-import rp from 'request-promise-native';
 import Record from 'marc-record-js';
 import Serializers from 'marc-record-serializers';
 import path from 'path';
@@ -58,7 +55,7 @@ export function formatResults(results) {
           result += `${validator.fix[i].type}: ${fieldToString(validator.fix[i].field)}\n`;
         }
       }
-    })
+    });
   return result;
 }
 
@@ -246,7 +243,7 @@ export function isWithinTimeinterval(range, date = new Date()) {
  * @returns {Record}
  */
 export function processRecordForRollback(oldRecord, newRecord) {
-  const catFields = newRecord.fields.filter(field => field.tag === "CAT");
+  const catFields = newRecord.fields.filter(field => field.tag === 'CAT');
   oldRecord.appendField(catFields.pop());
   return oldRecord;
 }

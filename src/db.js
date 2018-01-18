@@ -1,5 +1,4 @@
 import { MongoClient } from 'mongodb';
-import Serializers from 'marc-record-serializers';
 import Record from 'marc-record-js';
 import prompt from 'prompt-promise';
 import { client } from './config';
@@ -15,13 +14,13 @@ const mongoUrl = 'mongodb://localhost:27017/';
 export async function saveToDb(res, batchId) {
   try {
     const entry = res.map(r => {
-        return {
-          _id: r.id,
-          originalRecord: r.originalRecord.toString(),
-          validatedRecord: r.validatedRecord.toString(),
-          results: r.results,
-          updateResponse: r.updateResponse
-        }
+      return {
+        _id: r.id,
+        originalRecord: r.originalRecord.toString(),
+        validatedRecord: r.validatedRecord.toString(),
+        results: r.results,
+        updateResponse: r.updateResponse
+      };
     });
     const database = await MongoClient.connect(mongoUrl);
     const validateDb = await database.db('validate');
@@ -84,7 +83,6 @@ export async function wipeDatabase() {
     const database = await MongoClient.connect(mongoUrl);
     const validateDb = await database.db('validate');
     const cursor = await validateDb.listCollections();
-    // const collNames = colls.map(coll => coll.name);
     let totalRecords = 0;
     let totalColls = 0;
     while (await cursor.hasNext()) {
@@ -98,7 +96,7 @@ export async function wipeDatabase() {
       return false;
     }
     const result = await prompt(`Confirm that you want to erase the database (contains ${totalRecords} records in ${totalColls} collections) (y/n): `);
-    if (result == "y") {
+    if (result == 'y') {
       const dropResult = await validateDb.dropDatabase();
       logger.warn(`Wiped the database (${totalRecords} records in ${totalColls} collections).`);
       return dropResult;
