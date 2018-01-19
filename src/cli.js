@@ -3,7 +3,7 @@ import * as yargs from 'yargs';
 import * as _ from 'lodash';
 import * as winston from 'winston';
 import fs from 'fs';
-import { saveToDb, revertToPrevious, wipeDatabase } from './db.js';
+import { saveToDb, revertToPrevious, wipeDatabase, revertSingle } from './db.js';
 import { show,
   validateRecord,
   fix,
@@ -63,6 +63,8 @@ const argv = yargs
   })
   .alias('u', 'undo')
   .describe('u', 'Revert a single record to its previous version')
+  .alias('b', 'undobatch')
+  .describe('b', 'Revert a batch of records into their previous state')
   .alias('r', 'reset')
   .describe('r', 'Reset the local database, wipe all backup data.')
   .argv;
@@ -156,7 +158,15 @@ if (argv.v || argv.l) {
   checkEnvVars(true);
   const id = argv.f;
   fix(id)
-    .then(res => afterSuccessfulUpdate(res))
+    .then(res => {
+      afterSuccessfulUpdate(res);
+      const batchId = generateBatchId();
+      logger.info(`Saving update results of record ${id} to db with batchId '${batchId}'...`);
+      return saveToDb([res], batchId);
+    })
+    .then(res => {
+      logger.info('Success.');
+    })
     .catch(err => {
       logger.error(`Updating record ${id} failed: '${err.errors ? err.errors.map(e => e.message).join(', ') : err}'`);
     });
@@ -184,26 +194,30 @@ if (argv.v || argv.l) {
   const batchId = generateBatchId();
 
   fixAll(idSets, ids.length, batchId);
-} else if (argv.u) {
+} else if (argv.b) {
+  checkEnvVars();
   logger.info(`Performing a rollback from batch with id '${argv.u}'...`);
   revertToPrevious(argv.u).then(results => {
-    results.forEach(res => {
-      const messages = res.messages.map(m => m.message).join(', ');
-      const triggers = res.triggers.map(m => m.message).join(', ');
-      const warnings = res.warnings.map(m => m.message).join(', ');
-      const errors = res.errors.map(m => m.message).join(', ');
-      logger.info(`rollback messages: ${messages}`);
-      if (triggers) {
-        logger.info(`rollback triggers: ${triggers}`);
-      }
-      if (warnings) {
-        logger.warn(`rollback warnings: ${warnings}`);
-      }
-      if (errors) {
-        logger.error(`rollback errors: ${errors}`);
-      }
-    });
+    logger.info('Success.');
   });
+} else if (argv.u) {
+  checkEnvVars();
+  let id = argv.u.toString();
+  const parsedId = '0'.repeat(9 - id.length) + id; // Yargs removes the leading zeros from number arguments
+  if (!isValid(parsedId)) {
+    throw new Error(`'${parsedId} is not a valid record id.'`);
+  }
+  revertSingle(parsedId)
+    .then(res => {
+      if (res) {
+        logger.info('Success.');
+        process.exit();
+      } else {
+        logger.warn(`Record ${parsedId} was not found in the backup database.`);
+        process.exit();
+      }
+    })
+    .catch(err => logger.error(err));
 } else if (argv.r) {
   wipeDatabase()
     .then(res => {
