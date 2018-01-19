@@ -4,7 +4,7 @@ import nock from 'nock';
 import fs from 'fs';
 import Serializers from 'marc-record-serializers';
 import chaiAsPromised from 'chai-as-promised';
-import { show, validateRecord, fileFix, saveLocally, formatResults, outputFileName, generateBatchId, isWithinTimeinterval } from '../src/operations.js';
+import { show, validateRecord, fileFix, formatResults, outputFileName, generateBatchId, isWithinTimeinterval } from '../src/operations.js';
 import chaiXml from 'chai-xml';
 
 chai.use(chaiAsPromised);
@@ -118,16 +118,6 @@ describe('fileFix', async () => {
     result = await fileFix('./data/testdata.xml');
     const validated3 = fs.readFileSync(`./files/${result.outputFile}`, 'utf-8');
     expect(validated3).xml.be.valid();
-  });
-});
-
-describe('saveLocally', async () => {
-  it('Should be able to fetch and save a record', async () => {
-    const record = Serializers.MARCXML.fromMARCXML(testRec);
-    let res = await saveLocally(record);
-    const id = record.get('001')[0].value;
-    expect(res).to.include('Saved');
-    expect(res).to.include(id);
   });
 });
 
