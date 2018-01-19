@@ -156,12 +156,13 @@ if (argv.v || argv.l) {
   });
 } else if (argv.f) {
   checkEnvVars(true);
-  const id = argv.f;
-  fix(id)
+  let id = argv.f.toString();
+  const parsedId = '0'.repeat(9 - id.length) + id; // Yargs removes the leading zeros from number arguments
+  fix(parsedId)
     .then(res => {
       afterSuccessfulUpdate(res);
       const batchId = generateBatchId();
-      logger.info(`Saving update results of record ${id} to db with batchId '${batchId}'...`);
+      logger.info(`Saving update results of record ${parsedId} to db with batchId '${batchId}'...`);
       return saveToDb([res], batchId);
     })
     .then(res => {

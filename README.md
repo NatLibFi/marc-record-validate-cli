@@ -34,8 +34,9 @@ The client supports the following flags:
 * -m, --fixmultiple - Reads multiple record ids from a local file, validates and fixes them in the database. Example: `node build/cli.js -m lotsofrecs.txt`.
   * When using the flag -m, you can add an optional flag `-c` / `--chunksize` for specifying the chunk size for the batch operation, i.e. how large a set of records is processed simultaneously. By default this value is 5. If `chunksize` is set to 1, records are processed synchronously. Example: `node build/cli.js -m lotsofrecs.txt -c 10`.
   * You can also set an optional flag `-t / --timeinterval` for setting up a time range in which to run long-running operations. The value of -t must be in the format `18-06`, i.e. hours in two-number format separated by a hyphen. Example `node build/cli.js -m lotsofrecs.txt -c 10 -t 20-06`.
-* -u, --undo - Undo a batch operation. Takes a batchId as a parameter and tries to revert all records processed in it into their previous state in the database. Example: `node build/cli.js -u batch1516292975428`.
-* -r, --reset - Wipes all the history data from the local MongoDB database.
+* -u, --undo - Try to undo the latest changes made in a single record. Example: `node build/cli.js --undo 001440782`
+* -b, --undobatch - Undo a batch operation. Takes a batchId as a parameter and tries to revert all records processed in it into their previous state in the database. Example: `node build/cli.js --undobatch batch1516292975428`.
+* -r, --reset - Wipes all the history data from the local MongoDB database. Asks for confirmation.
 
 ### License and copyright
 
