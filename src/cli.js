@@ -147,8 +147,14 @@ if (argv.v || argv.l) {
     }
     console.log('Validated record:');
     console.log(res.validatedRecord.toString());
+    console.log('\n' + formatResults(res.results));
     if (argv.l) {
-      saveLocally(res.validatedRecord);
+      saveLocally(res.validatedRecord, '_validated').then(res => {
+        logger.info(res);
+      });
+      saveLocally(res.originalRecord, '_original').then(res => {
+        logger.info(res);
+      });
     }
   }).catch(err => {
     console.log(err);
@@ -197,8 +203,8 @@ if (argv.v || argv.l) {
   fixAll(idSets, ids.length, batchId);
 } else if (argv.b) {
   checkEnvVars();
-  logger.info(`Performing a rollback from batch with id '${argv.u}'...`);
-  revertToPrevious(argv.u).then(results => {
+  logger.info(`Performing a rollback from batch with id '${argv.b}'...`);
+  revertToPrevious(argv.b).then(results => {
     logger.info('Success.');
   });
 } else if (argv.u) {
