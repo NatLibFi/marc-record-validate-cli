@@ -178,25 +178,6 @@ export async function fileFix(file) {
   });
 }
 
-export async function saveLocally(record, ending='') {
-  const id = record.get('001')[0].value;
-  const fileName = outputFileName(id, ending);
-  const validatedRecordAsXML = Serializers.MARCXML.toMARCXML(record);
-
-  if (!fs.existsSync('./files')) {
-    fs.mkdirSync('./files');
-  }
-
-  return new Promise((resolve, reject) => {
-    fs.writeFile(fileName, validatedRecordAsXML, (err) => {
-      if (err) reject(err);
-      else {
-        resolve(`Saved ${fileName}`);
-      }
-    });
-  });
-}
-
 /**
  * Generate a unique id for the batch job from js Date object.
  * @param {Date} - A date object (optional)

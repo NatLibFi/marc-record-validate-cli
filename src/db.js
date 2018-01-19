@@ -76,6 +76,49 @@ export async function revertToPrevious(batchId) {
 }
 
 /**
+ * Takes a record id and tries to revert it into its previous state.
+ * @param { string } - recordId
+ */
+export async function revertSingle(id) {
+  const database = await MongoClient.connect(mongoUrl);
+  const validateDb = await database.db('validate');
+  const cursor = await validateDb.listCollections();
+  while (await cursor.hasNext()) {
+    const curr = await cursor.next();
+    const resultRecs = await validateDb.collection(curr.name).find({ _id: id }).toArray();
+    if (resultRecs.length === 1) {
+      const original = Record.fromString(resultRecs.pop().originalRecord);
+      logger.info(`Trying to revert record ${id} to its previous state...`);
+      const current = await client.loadRecord(id);
+      const processedRecord = processRecordForRollback(original, current);
+      try {
+        const result = await client.updateRecord(processedRecord);
+        const messages = result.messages.map(m => m.message).join(', ');
+        const triggers = result.triggers.map(m => m.message).join(', ');
+        const warnings = result.warnings.map(m => m.message).join(', ');
+        const errors = result.errors.map(m => m.message).join(', ');
+        logger.info(messages);
+        if (triggers) {
+          logger.info(triggers);
+        }
+        if (warnings) {
+          logger.warn(warnings);
+        }
+        if (errors) {
+          logger.error(errors);
+        }
+        return true;
+      } catch (e) {
+        logger.error(e);
+        return false;
+      }
+    }
+  }
+  database.close();
+  return false;
+}
+
+/**
  * Deletes all backup data from the MongoDB database.
  */
 export async function wipeDatabase() {
