@@ -1,17 +1,17 @@
-# marc-record-validate-cli
+# melinda-batch-update-cli
 
-[![Build Status](https://travis-ci.org/NatLibFi/marc-record-validate-cli.svg?branch=master)](https://travis-ci.org/NatLibFi/marc-record-validate-cli)
-[![Coverage Status](https://coveralls.io/repos/github/NatLibFi/marc-record-validate-cli/badge.svg?branch=master)](https://coveralls.io/github/NatLibFi/marc-record-validate-cli?branch=master)
+[![Build Status](https://travis-ci.org/NatLibFi/melinda-batch-update-cli.svg?branch=master)](https://travis-ci.org/NatLibFi/melinda-batch-update-cli)
+[![Coverage Status](https://coveralls.io/repos/github/NatLibFi/melinda-batch-update-cli/badge.svg?branch=master)](https://coveralls.io/github/NatLibFi/melinda-batch-update-cli?branch=master)
 
 ### Description
 
-A command-line client for validating and updating MARC records using [marc-record-validate](https://github.com/NatLibFi/marc-record-validate) type validators.
+A command-line client for batch updating records in Melinda.
 
 ### Configuration and setup
 
 Clone the repository and install deps by running `npm install`.
 
-Setup the desired validators in `config.js`.
+Setup the desired validators in `src/validate.js`.
 
 Set the environment variables `VALIDATE_USER`, `VALIDATE_PASS` and `VALIDATE_API`.
 
@@ -21,7 +21,7 @@ Build by running `npm run build`.
 
 ### Usage
 
-Run by `node build/cli.js <options>`.
+Run by `node dist/index.js <options>`.
 
 The client supports the following flags:
 

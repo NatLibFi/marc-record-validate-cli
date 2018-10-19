@@ -1,8 +1,15 @@
 language: node_js
 node_js:
-  - "9"
-env:
-  global:
-    - VALIDATE_USER="test"
-    - VALIDATE_PASS="test"
-    - VALIDATE_API="http://melinda.kansalliskirjasto.fi/api/latest"
+- node
+- '7'
+before_script:
+- curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64
+  > ./cc-test-reporter
+- chmod +x ./cc-test-reporter
+- "./cc-test-reporter before-build"
+after_script:
+- "./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT"
+addons:
+  code_climate:
+    repo_token:
+      secure: bqx+Oh+vqNwbaDonyAuzxrI4Hceao2X21rM6e6RN1oZxuctJDbAe0OVSZ6/WCQasZrK8Z3q3xkg1mwNMIjc2KnH96+km5bcoLypJXQ9FJILmRZgvHW7SbtFOt4uoa0Bw6bLz0c6NKMLTXN5/oU4g7M95OeZatmAQ4UHKyv3DqBvjTyQIhav83SIz6A2pE0883ayNiaDXWsNLsf9s8ZqMoZuWlRy/fAxBPqf43y1/SnjVVzR+FYnUs/u0rL/XYAoWY/CkzqDjT1eG7ucD2QU1yvnloWTn+D0XMthYfJDV2UgBu5U6XO3pPI15dkOZl336WonZUlH3Tszs7Jk5snR+BPD3kBvta+dHhvCOPF5dY/c1KbOpcAvKRadwG4951PkSCN+ESJ14CP/xhD11bybKLAMui++ruYLZYnFh6s3/8m7qYWHFarwTHWeIk45ikL1LNh8mg0Qa68lzPXiFrsxRU0cpzFtcX+TWlgRlf33Nf+kPC0W+OSHg96FWW9milIgnM3xWZKUbq7aTsLDDYky+Oy8N1GQJ2kSFHdmm8pVLGphjdGRr0N5vhjOQETMeV/+qaU34yyU7vaJVE1sajM6Wb6qj6EZmm7Oew8QBhomIOqrn49xzeMnCjXip1j/EZsurJ7QIbUlfrnOHkOcIfrBgLuBxu6UMpS1ET1SUC+TyA7g=
